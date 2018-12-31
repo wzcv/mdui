@@ -15,15 +15,15 @@ mdui.prompt = function (label, title, onConfirm, onCancel, options) {
     options = arguments[3];
   }
 
-  if (typeof onConfirm === 'undefined') {
+  if (onConfirm === undefined) {
     onConfirm = function () {};
   }
 
-  if (typeof onCancel === 'undefined') {
+  if (onCancel === undefined) {
     onCancel = function () {};
   }
 
-  if (typeof options === 'undefined') {
+  if (options === undefined) {
     options = {};
   }
 
@@ -39,9 +39,10 @@ mdui.prompt = function (label, title, onConfirm, onCancel, options) {
     type: 'text',             // 输入框类型，text: 单行文本框 textarea: 多行文本框
     maxlength: '',            // 最大输入字符数
     defaultValue: '',         // 输入框中的默认文本
+    confirmOnEnter: false,    // 按下 enter 确认输入内容
   };
 
-  options = $.extend(DEFAULT, options);
+  options = $.extend({}, DEFAULT, options);
 
   var content =
     '<div class="mdui-textfield">' +
@@ -59,6 +60,22 @@ mdui.prompt = function (label, title, onConfirm, onCancel, options) {
         '') +
     '</div>';
 
+  var onCancelClick = onCancel;
+  if (typeof onCancel === 'function') {
+    onCancelClick = function (inst) {
+      var value = inst.$dialog.find('.mdui-textfield-input').val();
+      onCancel(value, inst);
+    }
+  }
+
+  var onConfirmClick = onConfirm;
+  if (typeof onConfirm === 'function') {
+    onConfirmClick = function (inst) {
+      var value = inst.$dialog.find('.mdui-textfield-input').val();
+      onConfirm(value, inst);
+    }
+  }
+
   return mdui.dialog({
     title: title,
     content: content,
@@ -67,19 +84,13 @@ mdui.prompt = function (label, title, onConfirm, onCancel, options) {
         text: options.cancelText,
         bold: false,
         close: true,
-        onClick: function (inst) {
-          var value = $.query('.mdui-textfield-input', inst.dialog).value;
-          onCancel(value, inst);
-        },
+        onClick: onCancelClick,
       },
       {
         text: options.confirmText,
         bold: false,
         close: true,
-        onClick: function (inst) {
-          var value = $.query('.mdui-textfield-input', inst.dialog).value;
-          onConfirm(value, inst);
-        },
+        onClick: onConfirmClick,
       },
     ],
     cssClass: 'mdui-dialog-prompt',
@@ -89,15 +100,26 @@ mdui.prompt = function (label, title, onConfirm, onCancel, options) {
     onOpen: function (inst) {
 
       // 初始化输入框
-      var input = $.query('.mdui-textfield-input', inst.dialog);
-      mdui.updateTextFields(input);
+      var $input = inst.$dialog.find('.mdui-textfield-input');
+      mdui.updateTextFields($input);
 
       // 聚焦到输入框
-      input.focus();
+      $input[0].focus();
+
+      // 捕捉文本框回车键，在单行文本框的情况下触发回调
+      if (options.type === 'text' && options.confirmOnEnter === true) {
+        $input.on('keydown', function (event) {
+          if (event.keyCode === 13) {
+            var value = inst.$dialog.find('.mdui-textfield-input').val();
+            onConfirm(value, inst);
+            inst.close();
+          }
+        });
+      }
 
       // 如果是多行输入框，监听输入框的 input 事件，更新对话框高度
       if (options.type === 'textarea') {
-        $.on(input, 'input', function () {
+        $input.on('input', function () {
           inst.handleUpdate();
         });
       }

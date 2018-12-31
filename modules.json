@@ -2,9 +2,7 @@
   "core_intro": {
     "js": [
       "src/global/js/wrap_start.js",
-      "src/global/js/dom.js",
-      "src/global/js/support.js",
-      "src/global/js/global.js"
+      "src/global/js/polyfill.js"
     ],
     "less": [
       "src/mixin/less/color.less",
@@ -50,6 +48,22 @@
     ],
     "dependencies": []
   },
+  "jq": {
+    "js": [
+      "src/jq/js/jq.js"
+    ],
+    "less": [],
+    "dependencies": []
+  },
+  "global": {
+    "js": [
+      "src/global/js/global.js",
+      "src/global/js/function.js",
+      "src/global/js/jq_extend.js"
+    ],
+    "less": [],
+    "dependencies": []
+  },
   "material-icons": {
     "js": [],
     "less": [
@@ -69,6 +83,13 @@
     "less": [
       "src/typo/less/typo.less"
     ],
+    "dependencies": []
+  },
+  "mutation": {
+    "js": [
+      "src/mutation/js/mutation.js"
+    ],
+    "less": [],
     "dependencies": []
   },
   "headroom": {
@@ -182,6 +203,16 @@
     "dependencies": [
       "button"
     ]
+  },
+  "select": {
+    "js": [
+      "src/select/js/select.js",
+      "src/select/js/select.data.js"
+    ],
+    "less": [
+      "src/select/less/select.less"
+    ],
+    "dependencies": []
   },
   "grid": {
     "js": [],

@@ -15,6 +15,18 @@ body {
   @media (min-width: @screen-md-min) {
     font-size: @screen-md-font-size;
   }
+
+  // 滚动条样式
+  * {
+    .mdui-scrollbar-beautify(light);
+  }
+
+  // 夜间模式滚动条样式
+  &.mdui-theme-layout-dark {
+    * {
+      .mdui-scrollbar-beautify(dark);
+    }
+  }
 }
 
 * {

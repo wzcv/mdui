@@ -1,4 +1,5 @@
   /* jshint ignore:start */
-  window.mdui = mdui;
-})(window, document);
+  mdui.JQ = $;
+  return mdui;
+})));
 /* jshint ignore:end */

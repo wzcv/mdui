@@ -3,7 +3,7 @@
  * ************   供 Collapse、 Panel 调用的折叠内容块插件   ************
  * =============================================================================
  */
-$.Collapse = (function () {
+var CollapsePrivate = (function () {
 
   /**
    * 默认参数
@@ -12,61 +12,64 @@ $.Collapse = (function () {
     accordion: false,                             // 是否使用手风琴效果
   };
 
-  // 类名
-  var CLASS = {
-    item: 'mdui-collapse-item',           // item 类名
-    itemOpen: 'mdui-collapse-item-open',  // 打开状态的 item
-    header: 'mdui-collapse-item-header',  // item 中的 header 类名
-    body: 'mdui-collapse-item-body',      // item 中的 body 类名
-  };
-
-  // 命名空间
-  var NAMESPACE = 'collapse';
-
   /**
    * 折叠内容块
    * @param selector
    * @param opts
-   * @param classes
    * @param namespace
    * @constructor
    */
-  function Collapse(selector, opts, classes, namespace) {
+  function Collapse(selector, opts, namespace) {
     var _this = this;
 
-    _this.classes = $.extend(CLASS, classes || {});
-    _this.namespace = (typeof namespace === 'undefined' || !namespace) ? NAMESPACE : namespace;
+    // 命名空间
+    _this.ns = namespace;
+
+    // 类名
+    var classpPefix = 'mdui-' + _this.ns + '-item';
+    _this.class_item = classpPefix;
+    _this.class_item_open = classpPefix + '-open';
+    _this.class_header = classpPefix + '-header';
+    _this.class_body = classpPefix + '-body';
 
     // 折叠面板元素
-    _this.collapse = $.dom(selector)[0];
-    if (typeof _this.collapse === 'undefined') {
+    _this.$collapse = $(selector).eq(0);
+    if (!_this.$collapse.length) {
       return;
     }
 
-    _this.options = $.extend(DEFAULT, (opts || {}));
-
     // 已通过自定义属性实例化过，不再重复实例化
-    var oldInst = $.data(_this.collapse, 'mdui.' + _this.namespace);
+    var oldInst = _this.$collapse.data('mdui.' + _this.ns);
     if (oldInst) {
       return oldInst;
     }
 
-    $.on(_this.collapse, 'click', '.' + _this.classes.header, function (e) {
-      var item = $.parent(this, '.' + _this.classes.item);
-      if ($.child(_this.collapse, item)) {
-        _this.toggle(item);
+    _this.options = $.extend({}, DEFAULT, (opts || {}));
+
+    _this.$collapse.on('click', '.' + _this.class_header, function () {
+      var $item = $(this).parent('.' + _this.class_item);
+      if (_this.$collapse.children($item).length) {
+        _this.toggle($item);
+      }
+    });
+
+    // 绑定关闭按钮
+    _this.$collapse.on('click', '[mdui-' + _this.ns + '-item-close]', function () {
+      var $item = $(this).parents('.' + _this.class_item).eq(0);
+      if (_this._isOpen($item)) {
+        _this.close($item);
       }
     });
   }
 
   /**
    * 指定 item 是否处于打开状态
-   * @param item
+   * @param $item
    * @returns {boolean}
    * @private
    */
-  Collapse.prototype._isOpen = function (item) {
-    return item.classList.contains(this.classes.itemOpen);
+  Collapse.prototype._isOpen = function ($item) {
+    return $item.hasClass(this.class_item_open);
   };
 
   /**
@@ -79,11 +82,33 @@ $.Collapse = (function () {
     var _this = this;
 
     if (parseInt(item) === item) {
-      var items = $.children(_this.collapse, '.' + _this.classes.item);
-      return items[item];
+      // item 是索引号
+      return _this.$collapse.children('.' + _this.class_item).eq(item);
     }
 
-    return $.dom(item)[0];
+    return $(item).eq(0);
+  };
+
+  /**
+   * 动画结束回调
+   * @param inst
+   * @param $content
+   * @param $item
+   */
+  var transitionEnd = function (inst, $content, $item) {
+    if (inst._isOpen($item)) {
+      $content
+        .transition(0)
+        .height('auto')
+        .reflow()
+        .transition('');
+
+      componentEvent('opened', inst.ns, inst, $item[0]);
+    } else {
+      $content.height('');
+
+      componentEvent('closed', inst.ns, inst, $item[0]);
+    }
   };
 
   /**
@@ -92,38 +117,34 @@ $.Collapse = (function () {
    */
   Collapse.prototype.open = function (item) {
     var _this = this;
-    item = _this._getItem(item);
+    var $item = _this._getItem(item);
 
-    if (_this._isOpen(item)) {
+    if (_this._isOpen($item)) {
       return;
     }
 
     // 关闭其他项
     if (_this.options.accordion) {
-      $.each($.children(_this.collapse, '.' + _this.classes.itemOpen), function (i, temp) {
-        if (temp !== item) {
-          _this.close(temp);
+      _this.$collapse.children('.' + _this.class_item_open).each(function () {
+        var $tmpItem = $(this);
+
+        if ($tmpItem !== $item) {
+          _this.close($tmpItem);
         }
       });
     }
 
-    var content = $.child(item, '.' + _this.classes.body);
-    content.style.height = content.scrollHeight + 'px';
+    var $content = $item.children('.' + _this.class_body);
 
-    $.transitionEnd(content, function () {
-      if (_this._isOpen(item)) {
-        $.transition(content, 0);
-        content.style.height = 'auto';
-        $.relayout(content);
-        $.transition(content, '');
-        $.pluginEvent('opened', _this.namespace, _this, item);
-      } else {
-        content.style.height = '';
-      }
-    });
+    $content
+      .height($content[0].scrollHeight)
+      .transitionEnd(function () {
+        transitionEnd(_this, $content, $item);
+      });
 
-    $.pluginEvent('open', _this.namespace, _this, item);
-    item.classList.add(_this.classes.itemOpen);
+    componentEvent('open', _this.ns, _this, $item[0]);
+
+    $item.addClass(_this.class_item_open);
   };
 
   /**
@@ -132,47 +153,41 @@ $.Collapse = (function () {
    */
   Collapse.prototype.close = function (item) {
     var _this = this;
-    item = _this._getItem(item);
+    var $item = _this._getItem(item);
 
-    if (!_this._isOpen(item)) {
+    if (!_this._isOpen($item)) {
       return;
     }
 
-    var content = $.child(item, '.' + _this.classes.body);
-    item.classList.remove(_this.classes.itemOpen);
-    $.transition(content, 0);
-    content.style.height = content.scrollHeight + 'px';
-    $.relayout(content);
+    var $content = $item.children('.' + _this.class_body);
 
-    $.transition(content, '');
-    content.style.height = '';
-    $.pluginEvent('close', _this.namespace, _this, item);
+    componentEvent('close', _this.ns, _this, $item[0]);
 
-    $.transitionEnd(content, function () {
-      if (_this._isOpen(item)) {
-        $.transition(content, 0);
-        content.style.height = 'auto';
-        $.relayout(content);
-        $.transition(content, '');
-      } else {
-        content.style.height = '';
-        $.pluginEvent('closed', _this.namespace, _this, item);
-      }
-    });
+    $item.removeClass(_this.class_item_open);
+
+    $content
+      .transition(0)
+      .height($content[0].scrollHeight)
+      .reflow()
+      .transition('')
+      .height('')
+      .transitionEnd(function () {
+        transitionEnd(_this, $content, $item);
+      });
   };
 
   /**
    * 切换指定项的状态
-   * @param item 面板项的索引号或 DOM 元素或 CSS 选择器
+   * @param item 面板项的索引号或 DOM 元素或 CSS 选择器或 JQ 对象
    */
   Collapse.prototype.toggle = function (item) {
     var _this = this;
-    item = _this._getItem(item);
+    var $item = _this._getItem(item);
 
-    if (_this._isOpen(item)) {
-      _this.close(item);
+    if (_this._isOpen($item)) {
+      _this.close($item);
     } else {
-      _this.open(item);
+      _this.open($item);
     }
   };
 
@@ -182,9 +197,11 @@ $.Collapse = (function () {
   Collapse.prototype.openAll = function () {
     var _this = this;
 
-    $.each($.children(_this.collapse, '.' + _this.classes.item), function (i, item) {
-      if (!_this._isOpen(item)) {
-        _this.open(item);
+    _this.$collapse.children('.' + _this.class_item).each(function () {
+      var $tmpItem = $(this);
+
+      if (!_this._isOpen($tmpItem)) {
+        _this.open($tmpItem);
       }
     });
   };
@@ -195,9 +212,11 @@ $.Collapse = (function () {
   Collapse.prototype.closeAll = function () {
     var _this = this;
 
-    $.each($.children(_this.collapse, '.' + _this.classes.item), function (i, item) {
-      if (_this._isOpen(item)) {
-        _this.close(item);
+    _this.$collapse.children('.' + _this.class_item).each(function () {
+      var $tmpItem = $(this);
+
+      if (_this._isOpen($tmpItem)) {
+        _this.close($tmpItem);
       }
     });
   };
@@ -213,7 +232,7 @@ $.Collapse = (function () {
 mdui.Collapse = (function () {
 
   function Collapse(selector, opts) {
-    return new $.Collapse(selector, opts);
+    return new CollapsePrivate(selector, opts, 'collapse');
   }
 
   return Collapse;

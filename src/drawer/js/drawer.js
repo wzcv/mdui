@@ -16,6 +16,13 @@ mdui.Drawer = (function () {
   var DEFAULT = {
     // 在桌面设备上是否显示遮罩层。手机和平板不受这个参数影响，始终会显示遮罩层
     overlay: false,
+
+    // 是否开启手势
+    swipe: false,
+  };
+
+  var isDesktop = function () {
+    return $window.width() >= 1024;
   };
 
   /**
@@ -27,45 +34,44 @@ mdui.Drawer = (function () {
   function Drawer(selector, opts) {
     var _this = this;
 
-    _this.drawer = $.dom(selector)[0];
-    if (typeof _this.drawer === 'undefined') {
+    _this.$drawer = $(selector).eq(0);
+    if (!_this.$drawer.length) {
       return;
     }
 
-    var oldInst = $.data(_this.drawer, 'mdui.drawer');
+    var oldInst = _this.$drawer.data('mdui.drawer');
     if (oldInst) {
       return oldInst;
     }
 
-    _this.options = $.extend(DEFAULT, (opts || {}));
+    _this.options = $.extend({}, DEFAULT, (opts || {}));
 
     _this.overlay = false; // 是否显示着遮罩层
-    _this.position = _this.drawer.classList.contains('mdui-drawer-right') ? 'right' : 'left';
+    _this.position = _this.$drawer.hasClass('mdui-drawer-right') ? 'right' : 'left';
 
-    if (_this.drawer.classList.contains('mdui-drawer-close')) {
+    if (_this.$drawer.hasClass('mdui-drawer-close')) {
       _this.state = 'closed';
-    } else if (_this.drawer.classList.contains('mdui-drawer-open')) {
+    } else if (_this.$drawer.hasClass('mdui-drawer-open')) {
       _this.state = 'opened';
-    } else if (mdui.screen.mdUp()) {
+    } else if (isDesktop()) {
       _this.state = 'opened';
     } else {
       _this.state = 'closed';
     }
 
     // 浏览器窗口大小调整时
-    $.on(window, 'resize', mdui.throttle(function () {
+    $window.on('resize', $.throttle(function () {
       // 由手机平板切换到桌面时
-      if (mdui.screen.mdUp()) {
+      if (isDesktop()) {
         // 如果显示着遮罩，则隐藏遮罩
         if (_this.overlay && !_this.options.overlay) {
-          mdui.hideOverlay();
+          $.hideOverlay();
           _this.overlay = false;
-
-          mdui.unlockScreen();
+          $.unlockScreen();
         }
 
         // 没有强制关闭，则状态为打开状态
-        if (!_this.drawer.classList.contains('mdui-drawer-close')) {
+        if (!_this.$drawer.hasClass('mdui-drawer-close')) {
           _this.state = 'opened';
         }
       }
@@ -74,13 +80,12 @@ mdui.Drawer = (function () {
       else {
         if (!_this.overlay && _this.state === 'opened') {
           // 抽屉栏处于强制打开状态，添加遮罩
-          if (_this.drawer.classList.contains('mdui-drawer-open')) {
-            mdui.showOverlay();
+          if (_this.$drawer.hasClass('mdui-drawer-open')) {
+            $.showOverlay();
             _this.overlay = true;
+            $.lockScreen();
 
-            mdui.lockScreen();
-
-            $.one($.query('.mdui-overlay'), 'click', function () {
+            $('.mdui-overlay').one('click', function () {
               _this.close();
             });
           } else {
@@ -88,23 +93,180 @@ mdui.Drawer = (function () {
           }
         }
       }
-
     }, 100));
 
-    // 不支持 touch 的设备默认隐藏滚动条，鼠标移入时显示滚动条；支持 touch 的设备会自动隐藏滚动条
-    if (!mdui.support.touch) {
-      _this.drawer.style['overflow-y'] = 'hidden';
-      _this.drawer.classList.add('mdui-drawer-scrollbar');
-    }
-
     // 绑定关闭按钮事件
-    var closes = $.queryAll('[mdui-drawer-close]', _this.drawer);
-    $.each(closes, function (i, close) {
-      $.on(close, 'click', function () {
+    _this.$drawer.find('[mdui-drawer-close]').each(function () {
+      $(this).on('click', function () {
         _this.close();
       });
     });
+
+    swipeSupport(_this);
   }
+
+  /**
+   * 滑动手势支持
+   * @param _this
+   */
+  var swipeSupport = function (_this) {
+    // 抽屉栏滑动手势控制
+    var openNavEventHandler;
+    var touchStartX;
+    var touchStartY;
+    var swipeStartX;
+    var swiping = false;
+    var maybeSwiping = false;
+    var $body = $('body');
+
+    // 手势触发的范围
+    var swipeAreaWidth = 24;
+
+    function enableSwipeHandling() {
+      if (!openNavEventHandler) {
+        $body.on('touchstart', onBodyTouchStart);
+        openNavEventHandler = onBodyTouchStart;
+      }
+    }
+
+    function setPosition(translateX, closeTransform) {
+      var rtlTranslateMultiplier = _this.position === 'right' ? -1 : 1;
+      var transformCSS = 'translate(' + (-1 * rtlTranslateMultiplier * translateX) + 'px, 0) !important;';
+      _this.$drawer.css(
+        'cssText',
+        'transform:' + transformCSS + (closeTransform ? 'transition: initial !important;' : '')
+      );
+    }
+
+    function cleanPosition() {
+      _this.$drawer.css({
+        transform: '',
+        transition: '',
+      });
+    }
+
+    function getMaxTranslateX() {
+      return _this.$drawer.width() + 10;
+    }
+
+    function getTranslateX(currentX) {
+      return Math.min(
+        Math.max(
+          swiping === 'closing' ? (swipeStartX - currentX) : (getMaxTranslateX() + swipeStartX - currentX),
+          0
+        ),
+        getMaxTranslateX()
+      );
+    }
+
+    function onBodyTouchStart(event) {
+      touchStartX = event.touches[0].pageX;
+      if (_this.position === 'right') {
+        touchStartX = $body.width() - touchStartX;
+      }
+
+      touchStartY = event.touches[0].pageY;
+
+      if (_this.state !== 'opened') {
+        if (touchStartX > swipeAreaWidth || openNavEventHandler !== onBodyTouchStart) {
+          return;
+        }
+      }
+
+      maybeSwiping = true;
+
+      $body.on({
+        touchmove: onBodyTouchMove,
+        touchend: onBodyTouchEnd,
+        touchcancel: onBodyTouchMove,
+      });
+    }
+
+    function onBodyTouchMove(event) {
+      var touchX = event.touches[0].pageX;
+      if (_this.position === 'right') {
+        touchX = $body.width() - touchX;
+      }
+
+      var touchY = event.touches[0].pageY;
+
+      if (swiping) {
+        setPosition(getTranslateX(touchX), true);
+      } else if (maybeSwiping) {
+        var dXAbs = Math.abs(touchX - touchStartX);
+        var dYAbs = Math.abs(touchY - touchStartY);
+        var threshold = 8;
+
+        if (dXAbs > threshold && dYAbs <= threshold) {
+          swipeStartX = touchX;
+          swiping = _this.state === 'opened' ? 'closing' : 'opening';
+          $.lockScreen();
+          setPosition(getTranslateX(touchX), true);
+        } else if (dXAbs <= threshold && dYAbs > threshold) {
+          onBodyTouchEnd();
+        }
+      }
+    }
+
+    function onBodyTouchEnd(event) {
+      if (swiping) {
+        var touchX = event.changedTouches[0].pageX;
+        if (_this.position === 'right') {
+          touchX = $body.width() - touchX;
+        }
+
+        var translateRatio = getTranslateX(touchX) / getMaxTranslateX();
+
+        maybeSwiping = false;
+        var swipingState = swiping;
+        swiping = null;
+
+        if (swipingState === 'opening') {
+          if (translateRatio < 0.92) {
+            cleanPosition();
+            _this.open();
+          } else {
+            cleanPosition();
+          }
+        } else {
+          if (translateRatio > 0.08) {
+            cleanPosition();
+            _this.close();
+          } else {
+            cleanPosition();
+          }
+        }
+
+        $.unlockScreen();
+      } else {
+        maybeSwiping = false;
+      }
+
+      $body.off({
+        touchmove: onBodyTouchMove,
+        touchend: onBodyTouchEnd,
+        touchcancel: onBodyTouchMove,
+      });
+    }
+
+    if (_this.options.swipe) {
+      enableSwipeHandling();
+    }
+  };
+
+  /**
+   * 动画结束回调
+   * @param inst
+   */
+  var transitionEnd = function (inst) {
+    if (inst.$drawer.hasClass('mdui-drawer-open')) {
+      inst.state = 'opened';
+      componentEvent('opened', 'drawer', inst, inst.$drawer);
+    } else {
+      inst.state = 'closed';
+      componentEvent('closed', 'drawer', inst, inst.$drawer);
+    }
+  };
 
   /**
    * 打开抽屉栏
@@ -116,32 +278,27 @@ mdui.Drawer = (function () {
       return;
     }
 
-    _this.drawer.classList.remove('mdui-drawer-close');
-    _this.drawer.classList.add('mdui-drawer-open');
-
     _this.state = 'opening';
-    $.pluginEvent('open', 'drawer', _this, _this.drawer);
+    componentEvent('open', 'drawer', _this, _this.$drawer);
 
     if (!_this.options.overlay) {
-      document.body.classList.add('mdui-drawer-body-' + _this.position);
+      $('body').addClass('mdui-drawer-body-' + _this.position);
     }
 
-    $.transitionEnd(_this.drawer, function () {
-      if (_this.drawer.classList.contains('mdui-drawer-open')) {
-        _this.state = 'opened';
-        $.pluginEvent('opened', 'drawer', _this, _this.drawer);
-      }
-    });
+    _this.$drawer
+      .removeClass('mdui-drawer-close')
+      .addClass('mdui-drawer-open')
+      .transitionEnd(function () {
+        transitionEnd(_this);
+      });
 
-    if (!mdui.screen.mdUp() || _this.options.overlay) {
-      var overlay = mdui.showOverlay();
+    if (!isDesktop() || _this.options.overlay) {
       _this.overlay = true;
-
-      mdui.lockScreen();
-
-      $.one(overlay, 'click', function () {
+      $.showOverlay().one('click', function () {
         _this.close();
       });
+
+      $.lockScreen();
     }
   };
 
@@ -155,27 +312,24 @@ mdui.Drawer = (function () {
       return;
     }
 
-    _this.drawer.classList.add('mdui-drawer-close');
-    _this.drawer.classList.remove('mdui-drawer-open');
     _this.state = 'closing';
-    $.pluginEvent('close', 'drawer', _this, _this.drawer);
+    componentEvent('close', 'drawer', _this, _this.$drawer);
 
     if (!_this.options.overlay) {
-      document.body.classList.remove('mdui-drawer-body-' + _this.position);
+      $('body').removeClass('mdui-drawer-body-' + _this.position);
     }
 
-    $.transitionEnd(_this.drawer, function () {
-      if (!_this.drawer.classList.contains('mdui-drawer-open')) {
-        _this.state = 'closed';
-        $.pluginEvent('closed', 'drawer', _this, _this.drawer);
-      }
-    });
+    _this.$drawer
+      .addClass('mdui-drawer-close')
+      .removeClass('mdui-drawer-open')
+      .transitionEnd(function () {
+        transitionEnd(_this);
+      });
 
     if (_this.overlay) {
-      mdui.hideOverlay();
+      $.hideOverlay();
       _this.overlay = false;
-
-      mdui.unlockScreen();
+      $.unlockScreen();
     }
   };
 

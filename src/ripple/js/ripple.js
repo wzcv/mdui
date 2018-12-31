@@ -14,11 +14,16 @@
   var Ripple = {
 
     /**
+     * 延时，避免手指滑动时也触发涟漪（单位：毫秒）
+     */
+    delay: 200,
+
+    /**
      * 显示涟漪动画
      * @param e
-     * @param element
+     * @param $ripple
      */
-    show: function (e, element) {
+    show: function (e, $ripple) {
 
       // 鼠标右键不产生涟漪
       if (e.button === 2) {
@@ -37,15 +42,14 @@
       var touchStartY = tmp.pageY;
 
       // 涟漪位置
-      var box = element.getBoundingClientRect();
-      var offset = $.offset(element);
+      var offset = $ripple.offset();
       var center = {
         x: touchStartX - offset.left,
         y: touchStartY - offset.top,
       };
 
-      var height = box.height;
-      var width = box.width;
+      var height = $ripple.innerHeight();
+      var width = $ripple.innerWidth();
       var diameter = Math.max(
         Math.pow((Math.pow(height, 2) + Math.pow(width, 2)), 0.5), 48
       );
@@ -56,140 +60,75 @@
         'scale(1)';
 
       // 涟漪的 DOM 结构
-      var ripple = $.dom('<div class="mdui-ripple-wave" style="' +
+      $('<div class="mdui-ripple-wave" style="' +
         'width: ' + diameter + 'px; ' +
         'height: ' + diameter + 'px; ' +
         'margin-top:-' + diameter / 2 + 'px; ' +
         'margin-left:-' + diameter / 2 + 'px; ' +
         'left:' + center.x + 'px; ' +
         'top:' + center.y + 'px;">' +
-        '</div>')[0];
+        '</div>')
 
-      // 缓存动画效果
-      $.data(ripple, {
-        translate: translate,
-      });
+        // 缓存动画效果
+        .data('translate', translate)
 
-      $.prepend(element, ripple);
-      $.relayout(ripple);
-      $.transform(ripple, translate);
+        .prependTo($ripple)
+        .reflow()
+        .transform(translate);
     },
 
     /**
      * 隐藏涟漪动画
-     * @param e
-     * @param element
      */
     hide: function (e, element) {
-      element = element || this;
+      var $ripple = $(element || this);
 
-      var ripples = $.children(element, '.mdui-ripple-wave');
-
-      $.each(ripples, function (i, ripple) {
-        removeRipple(ripple);
+      $ripple.children('.mdui-ripple-wave').each(function () {
+        removeRipple($(this));
       });
 
-      if (mdui.support.touch) {
-        $.off(element, 'touchmove touchend touchcancel', Ripple.hide);
-      }
-
-      $.off(element, 'mousemove mouseup mouseleave', Ripple.hide);
+      $ripple.off('touchmove touchend touchcancel mousemove mouseup mouseleave', Ripple.hide);
     },
   };
 
   /**
    * 隐藏并移除涟漪
-   * @param ripple
+   * @param $wave
    */
-  function removeRipple(ripple) {
-    if (!ripple || $.data(ripple, 'isRemoved')) {
+  function removeRipple($wave) {
+    if (!$wave.length || $wave.data('isRemoved')) {
       return;
     }
 
-    $.data(ripple, 'isRemoved', true);
+    $wave.data('isRemoved', true);
 
     var removeTimeout = setTimeout(function () {
-      $.remove(ripple);
+      $wave.remove();
     }, 400);
 
-    ripple.classList.add('mdui-ripple-wave-fill');
-    var translate = $.data(ripple, 'translate');
-    $.transform(ripple, translate.replace('scale(1)', 'scale(1.01)'));
-    $.transitionEnd(ripple, function (e) {
-      clearTimeout(removeTimeout);
+    var translate = $wave.data('translate');
 
-      var ripple = e.target;
-      ripple.classList.add('mdui-ripple-wave-out');
-      $.transform(ripple, translate.replace('scale(1)', 'scale(1.01)'));
+    $wave
+      .addClass('mdui-ripple-wave-fill')
+      .transform(translate.replace('scale(1)', 'scale(1.01)'))
+      .transitionEnd(function () {
+        clearTimeout(removeTimeout);
 
-      removeTimeout = setTimeout(function () {
-        $.remove(ripple);
-      }, 700);
+        $wave
+          .addClass('mdui-ripple-wave-out')
+          .transform(translate.replace('scale(1)', 'scale(1.01)'));
 
-      setTimeout(function () {
-        $.transitionEnd(ripple, function (e) {
-          clearTimeout(removeTimeout);
-          $.remove(e.target);
-        });
-      }, 0);
-    });
-  }
+        removeTimeout = setTimeout(function () {
+          $wave.remove();
+        }, 700);
 
-  /**
-   * touch 事件后的 500ms 内禁用 mousedown 事件
-   */
-  var TouchHandler = {
-    touches: 0,
-
-    allowEvent: function (e) {
-      var allow = true;
-
-      if (e.type === 'mousedown' && TouchHandler.touches) {
-        allow = false;
-      }
-
-      return allow;
-    },
-
-    registerEvent: function (e) {
-      var eType = e.type;
-
-      if (eType === 'touchstart') {
-        TouchHandler.touches += 1;
-      } else if (['touchmove', 'touchend', 'touchcancel'].indexOf(eType) > -1) {
         setTimeout(function () {
-          if (TouchHandler.touches) {
-            TouchHandler.touches -= 1;
-          }
-        }, 500);
-      }
-    },
-  };
-
-  /**
-   * 找到含 .mdui-ripple 类的元素
-   * @param e
-   * @returns {*}
-   */
-  function getRippleElement(e) {
-    if (TouchHandler.allowEvent(e) === false) {
-      return null;
-    }
-
-    var element = null;
-    var target = e.target;
-    var rippleParents;
-
-    if (target.classList.contains('mdui-ripple')) {
-      element = target;
-    } else {
-      rippleParents = $.parents(target, '.mdui-ripple');
-      if (rippleParents.length) {
-        element = rippleParents[0];
-      }
-    }
-
-    return element;
+          $wave.transitionEnd(function () {
+            clearTimeout(removeTimeout);
+            $wave.remove();
+          });
+        }, 0);
+      });
   }
 
   /**
@@ -197,32 +136,80 @@
    * @param e
    */
   function showRipple(e) {
-    var element = getRippleElement(e);
+    if (!TouchHandler.isAllow(e)) {
+      return;
+    }
 
-    if (element !== null) {
+    TouchHandler.register(e);
+
+    // Chrome 59 点击滚动条时，会在 document 上触发事件
+    if (e.target === document) {
+      return;
+    }
+
+    var $ripple;
+    var $target = $(e.target);
+
+    // 获取含 .mdui-ripple 类的元素
+    if ($target.hasClass('mdui-ripple')) {
+      $ripple = $target;
+    } else {
+      $ripple = $target.parents('.mdui-ripple').eq(0);
+    }
+
+    if ($ripple.length) {
 
       // 禁用状态的元素上不产生涟漪效果
-      if (element.disabled || element.getAttribute('disabled')) {
+      if ($ripple[0].disabled || $ripple.attr('disabled') !== null) {
         return;
       }
 
-      TouchHandler.registerEvent(e);
+      if (e.type === 'touchstart') {
+        var hidden = false;
 
-      Ripple.show(e, element);
+        // toucstart 触发指定时间后开始涟漪动画
+        var timer = setTimeout(function () {
+          timer = null;
+          Ripple.show(e, $ripple);
+        }, Ripple.delay);
 
-      if (mdui.support.touch) {
-        $.on(element, 'touchmove touchend touchcancel', Ripple.hide);
+        var hideRipple = function (hideEvent) {
+          // 如果手指没有移动，且涟漪动画还没有开始，则开始涟漪动画
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+            Ripple.show(e, $ripple);
+          }
+
+          if (!hidden) {
+            hidden = true;
+            Ripple.hide(hideEvent, $ripple);
+          }
+        };
+
+        // 手指移动后，移除涟漪动画
+        var touchMove = function (moveEvent) {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+
+          hideRipple(moveEvent);
+        };
+
+        $ripple
+          .on('touchmove', touchMove)
+          .on('touchend touchcancel', hideRipple);
+
+      } else {
+        Ripple.show(e, $ripple);
+        $ripple.on('touchmove touchend touchcancel mousemove mouseup mouseleave', Ripple.hide);
       }
-
-      $.on(element, 'mousemove mouseup mouseleave', Ripple.hide);
     }
   }
 
   // 初始化绑定的事件
-  if (mdui.support.touch) {
-    $.on(document, 'touchstart', showRipple);
-    $.on(document, 'touchmove touchend touchcancel', TouchHandler.registerEvent);
-  }
-
-  $.on(document, 'mousedown', showRipple);
+  $document
+    .on(TouchHandler.start, showRipple)
+    .on(TouchHandler.unlock, TouchHandler.register);
 })();

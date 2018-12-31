@@ -116,8 +116,13 @@
     color: @color-black-secondary;
   }
 
-  [draggable] {
+  [draggable],
+  [draggable="true"] {
     cursor: move;
+  }
+
+  [draggable="false"] {
+    cursor: inherit;
   }
 
   p, pre, ul, ol, dl, form, hr, figure, table, .mdui-table, .mdui-table-fluid {
@@ -127,6 +132,8 @@
   /* a */
   a {
     .mdui-text-color(@color-accent-default-name, a200);
+    display: inline-block;
+    vertical-align: top;
     text-decoration: none;
     position: relative;
     overflow: hidden;
@@ -135,7 +142,7 @@
     &:before {
       position: absolute;
       top: auto;
-      bottom: -2px;
+      bottom: 1px;
       left: 0;
       width: 100%;
       height: 1px;

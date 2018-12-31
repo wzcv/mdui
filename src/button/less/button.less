@@ -45,10 +45,6 @@
   // 移除点击延迟触发
   touch-action: manipulation;
 
-  &::-moz-focus-inner {
-    border: 0;
-  }
-
   // 透明按钮 hover、active 时颜色加深
   &:hover {
     background-color: rgba(0, 0, 0, 0.1);
@@ -88,7 +84,7 @@
 }
 
 input.mdui-btn[type="submit"] {
-  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* Raised button 浮动按钮 */
@@ -116,6 +112,7 @@ input.mdui-btn[type="submit"] {
       color: rgba(0, 0, 0, .26) !important;
       .mdui-shadow(0) !important;
       cursor: default !important;
+      opacity: 1 !important;
       .mdui-icon {
         color: rgba(0, 0, 0, .26) !important;
       }
@@ -187,6 +184,55 @@ input.mdui-btn[type="submit"] {
   }
 }
 
+/* 按钮组 */
+.mdui-btn-group {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+
+  .mdui-btn {
+    float: left;
+    min-width: inherit;
+    color: rgba(0, 0, 0, 0.54);
+    border-radius: 0;
+    padding: 0 12px;
+
+    &:before {
+      content: ' ';
+      border-left: 1px solid transparent;
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+    }
+
+    &:first-child {
+      border-top-left-radius: 2px;
+      border-bottom-left-radius: 2px;
+
+      &:before {
+        border-left: none;
+      }
+    }
+
+    &:last-child {
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+    }
+
+    // 激活状态
+    &.mdui-btn-active {
+      color: rgba(0, 0, 0, 0.87);
+      background-color: rgba(0, 0, 0, 0.215);
+
+      &+.mdui-btn-active {
+        &:before {
+          border-left: 1px solid rgba(0, 0, 0, 0.145);
+        }
+      }
+    }
+  }
+}
 
 
 /**
