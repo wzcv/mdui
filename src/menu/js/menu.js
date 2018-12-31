@@ -20,6 +20,18 @@ mdui.Menu = (function () {
   };
 
   /**
+   * 类名
+   */
+  var CLASS = {
+    menu: 'mdui-menu',                    // 菜单基础类
+    cascade: 'mdui-menu-cascade',         // 级联菜单
+    open: 'mdui-menu-open',               // 打开状态的菜单
+    item: 'mdui-menu-item',               // 菜单条目
+    active: 'mdui-menu-item-active',      // 激活状态的菜单
+    divider: 'mdui-divider',              // 分隔线
+  };
+
+  /**
    * 调整主菜单位置
    * @param _this 实例
    */
@@ -32,8 +44,8 @@ mdui.Menu = (function () {
     var align;
 
     // window 窗口的宽度和高度
-    var windowHeight = $window.height();
-    var windowWidth = $window.width();
+    var windowHeight = document.documentElement.clientHeight;
+    var windowWidth = document.documentElement.clientWidth;
 
     // 配置参数
     var gutter = _this.options.gutter;
@@ -45,13 +57,13 @@ mdui.Menu = (function () {
     var transformOriginY;
 
     // 菜单的原始宽度和高度
-    var menuWidth = _this.$menu.width();
-    var menuHeight = _this.$menu.height();
+    var menuWidth = parseFloat($.getStyle(_this.menu, 'width'));
+    var menuHeight = parseFloat($.getStyle(_this.menu, 'height'));
 
-    var $anchor = _this.$anchor;
+    var anchor = _this.anchor;
 
     // 触发菜单的元素在窗口中的位置
-    var anchorTmp = $anchor[0].getBoundingClientRect();
+    var anchorTmp = anchor.getBoundingClientRect();
     var anchorTop = anchorTmp.top;
     var anchorLeft = anchorTmp.left;
     var anchorHeight = anchorTmp.height;
@@ -60,8 +72,8 @@ mdui.Menu = (function () {
     var anchorRight = windowWidth - anchorLeft - anchorWidth;
 
     // 触发元素相对其拥有定位属性的父元素的位置
-    var anchorOffsetTop = $anchor[0].offsetTop;
-    var anchorOffsetLeft = $anchor[0].offsetLeft;
+    var anchorOffsetTop = anchor.offsetTop;
+    var anchorOffsetLeft = anchor.offsetLeft;
 
     // ===============================
     // ================= 自动判断菜单位置
@@ -135,10 +147,10 @@ mdui.Menu = (function () {
       var menuHeightTemp = menuHeight;
 
       // 简单菜单比窗口高时，限制菜单高度
-      if (!_this.isCascade) {
+      if (!_this.menu.classList.contains('mdui-menu-cascade')) {
         if (menuHeight + gutter * 2 > windowHeight) {
           menuHeightTemp = windowHeight - gutter * 2;
-          _this.$menu.height(menuHeightTemp);
+          _this.menu.style.height = menuHeightTemp + 'px';
         }
       }
 
@@ -147,7 +159,7 @@ mdui.Menu = (function () {
         (isFixed ? 0 : (anchorOffsetTop - anchorTop));
     }
 
-    _this.$menu.css('top', menuTop + 'px');
+    _this.menu.style.top = menuTop + 'px';
 
     // ===============================
     // ================= 设置菜单对齐方式
@@ -173,7 +185,7 @@ mdui.Menu = (function () {
       // 菜单比窗口宽，限制菜单宽度
       if (menuWidth + gutter * 2 > windowWidth) {
         menuWidthTemp = windowWidth - gutter * 2;
-        _this.$menu.width(menuWidthTemp);
+        _this.menu.style.width = menuWidthTemp + 'px';
       }
 
       menuLeft =
@@ -181,18 +193,18 @@ mdui.Menu = (function () {
         (isFixed ? 0 : anchorOffsetLeft - anchorLeft);
     }
 
-    _this.$menu.css('left', menuLeft + 'px');
+    _this.menu.style.left = menuLeft + 'px';
 
     // 设置菜单动画方向
-    _this.$menu.transformOrigin(transformOriginX + ' ' + transformOriginY);
+    $.transformOrigin(_this.menu, transformOriginX + ' ' + transformOriginY);
   };
 
   /**
    * 调整子菜单的位置
-   * @param $submenu
+   * @param submenu
    */
-  var readjustSubmenu = function ($submenu) {
-    var $item = $submenu.parent('.mdui-menu-item');
+  var readjustSubmenu = function (submenu) {
+    var item = $.parent(submenu, '.' + CLASS.item);
 
     var submenuTop;
     var submenuLeft;
@@ -202,19 +214,19 @@ mdui.Menu = (function () {
     var align; // left、right
 
     // window 窗口的宽度和高度
-    var windowHeight = $window.height();
-    var windowWidth = $window.width();
+    var windowHeight = document.documentElement.clientHeight;
+    var windowWidth = document.documentElement.clientWidth;
 
     // 动画方向参数
     var transformOriginX;
     var transformOriginY;
 
     // 子菜单的原始宽度和高度
-    var submenuWidth = $submenu.width();
-    var submenuHeight = $submenu.height();
+    var submenuWidth = parseFloat($.getStyle(submenu, 'width'));
+    var submenuHeight = parseFloat($.getStyle(submenu, 'height'));
 
     // 触发子菜单的菜单项的宽度高度
-    var itemTmp = $item[0].getBoundingClientRect();
+    var itemTmp = item.getBoundingClientRect();
     var itemWidth = itemTmp.width;
     var itemHeight = itemTmp.height;
     var itemLeft = itemTmp.left;
@@ -269,7 +281,7 @@ mdui.Menu = (function () {
       submenuTop = -submenuHeight + itemHeight;
     }
 
-    $submenu.css('top', submenuTop + 'px');
+    submenu.style.top = submenuTop + 'px';
 
     // ===================================
     // ===================== 设置菜单对齐方式
@@ -282,65 +294,59 @@ mdui.Menu = (function () {
       submenuLeft = -submenuWidth;
     }
 
-    $submenu.css('left', submenuLeft + 'px');
+    submenu.style.left = submenuLeft + 'px';
 
     // 设置菜单动画方向
-    $submenu.transformOrigin(transformOriginX + ' ' + transformOriginY);
+    $.transformOrigin(submenu, transformOriginX + ' ' + transformOriginY);
   };
 
   /**
    * 打开子菜单
-   * @param $submenu
+   * @param submenu
    */
-  var openSubMenu = function ($submenu) {
-    readjustSubmenu($submenu);
+  var openSubMenu = function (submenu) {
+    readjustSubmenu(submenu);
+    submenu.classList.add(CLASS.open);
 
-    $submenu
-      .addClass('mdui-menu-open')
-      .parent('.mdui-menu-item')
-      .addClass('mdui-menu-item-active');
+    // 菜单项上添加激活状态的样式
+    var item = $.parent(submenu, '.' + CLASS.item);
+    item.classList.add(CLASS.active);
   };
 
   /**
    * 关闭子菜单，及其嵌套的子菜单
-   * @param $submenu
+   * @param submenu
    */
-  var closeSubMenu = function ($submenu) {
-    // 关闭子菜单
-    $submenu
-      .removeClass('mdui-menu-open')
-      .addClass('mdui-menu-closing')
-      .transitionEnd(function () {
-        $submenu.removeClass('mdui-menu-closing');
-      })
+  var closeSubMenu = function (submenu) {
+    var item;
 
-      // 移除激活状态的样式
-      .parent('.mdui-menu-item')
-      .removeClass('mdui-menu-item-active');
+    // 关闭子菜单
+    submenu.classList.remove(CLASS.open);
+
+    // 移除激活状态的样式
+    item = $.parent(submenu, '.' + CLASS.item);
+    item.classList.remove(CLASS.active);
 
     // 循环关闭嵌套的子菜单
-    $submenu.find('.mdui-menu').each(function () {
-      var $subSubmenu = $(this);
-      $subSubmenu
-        .removeClass('mdui-menu-open')
-        .addClass('mdui-menu-closing')
-        .transitionEnd(function () {
-          $subSubmenu.removeClass('mdui-menu-closing');
-        })
-        .parent('.mdui-menu-item')
-        .removeClass('mdui-menu-item-active');
+    var submenus = $.queryAll('.' + CLASS.menu, submenu);
+    $.each(submenus, function (i, tmp) {
+      tmp.classList.remove(CLASS.open);
+
+      // 移除激活状态的样式
+      item = $.parent(tmp, '.' + CLASS.item);
+      item.classList.remove(CLASS.active);
     });
   };
 
   /**
    * 切换子菜单状态
-   * @param $submenu
+   * @param submenu
    */
-  var toggleSubMenu = function ($submenu) {
-    if ($submenu.hasClass('mdui-menu-open')) {
-      closeSubMenu($submenu);
+  var toggleSubMenu = function (submenu) {
+    if (submenu.classList.contains(CLASS.open)) {
+      closeSubMenu(submenu);
     } else {
-      openSubMenu($submenu);
+      openSubMenu(submenu);
     }
   };
 
@@ -349,92 +355,107 @@ mdui.Menu = (function () {
    * @param inst 实例
    */
   var bindSubMenuEvent = function (inst) {
-    // 点击打开子菜单
-    inst.$menu.on('click', '.mdui-menu-item', function (e) {
-      var $this = $(this);
-      var $target = $(e.target);
+    var trigger;
+    var delay;
 
-      // 禁用状态菜单不操作
-      if ($this.attr('disabled') !== null) {
-        return;
-      }
+    if (inst.options.subMenuTrigger === 'hover' && !mdui.support.touch) {
+      trigger = 'mouseover mouseout';
+      delay = inst.options.subMenuDelay;
+    } else {
+      trigger = 'click';
+      delay = 0;
+    }
 
-      // 没有点击在子菜单的菜单项上时，不操作（点在了子菜单的空白区域、或分隔线上）
-      if ($target.is('.mdui-menu') || $target.is('.mdui-divider')) {
-        return;
-      }
+    // subMneuTrigger: 'click'
+    if (trigger === 'click') {
+      $.on(inst.menu, trigger, '.' + CLASS.item, function (e) {
+        var _this = this;
 
-      // 阻止冒泡，点击菜单项时只在最后一级的 mdui-menu-item 上生效，不向上冒泡
-      if (!$target.parents('.mdui-menu-item').eq(0).is($this)) {
-        return;
-      }
+        // 禁用状态菜单不操作
+        if (_this.getAttribute('disabled') !== null) {
+          return;
+        }
 
-      // 当前菜单的子菜单
-      var $submenu = $this.children('.mdui-menu');
+        // 没有点击在子菜单的菜单项上时，不操作（点在了子菜单的空白区域、或分隔线上）
+        if ($.is(e.target, '.' + CLASS.menu) || $.is(e.target, '.' + CLASS.divider)) {
+          return;
+        }
 
-      // 先关闭除当前子菜单外的所有同级子菜单
-      $this.parent('.mdui-menu').children('.mdui-menu-item').each(function () {
-        var $tmpSubmenu = $(this).children('.mdui-menu');
-        if (
-          $tmpSubmenu.length &&
-          (!$submenu.length || !$tmpSubmenu.is($submenu))
-        ) {
-          closeSubMenu($tmpSubmenu);
+        // 阻止冒泡，点击菜单项时只在最后一级的 mdui-menu-item 上生效，不向上冒泡
+        if ($.parents(e.target, '.' + CLASS.item)[0] !== _this) {
+          return;
+        }
+
+        var submenu = $.child(_this, '.' + CLASS.menu);
+
+        // 先关闭除当前子菜单外的所有同级子菜单
+        var menu = $.parent(_this, '.' + CLASS.menu);
+        var items = $.children(menu, '.' + CLASS.item);
+        $.each(items, function (i, item) {
+          var tmpSubmenu = $.child(item, '.' + CLASS.menu);
+          if (
+            tmpSubmenu &&
+            (!submenu || !$.is(tmpSubmenu, submenu))
+          ) {
+            closeSubMenu(tmpSubmenu);
+          }
+        });
+
+        // 切换当前子菜单
+        if (submenu) {
+          toggleSubMenu(submenu);
         }
       });
+    }
 
-      // 切换当前子菜单
-      if ($submenu.length) {
-        toggleSubMenu($submenu);
-      }
-    });
+    // subMenuTrigger: 'hover'
+    else {
 
-    if (inst.options.subMenuTrigger === 'hover') {
       // 临时存储 setTimeout 对象
       var timeout;
 
       var timeoutOpen;
       var timeoutClose;
 
-      inst.$menu.on('mouseover mouseout', '.mdui-menu-item', function (e) {
-        var $this = $(this);
+      $.on(inst.menu, trigger, '.' + CLASS.item, function (e) {
+        var _this = this;
         var eventType = e.type;
-        var $relatedTarget = $(e.relatedTarget);
+        var relatedTarget = e.relatedTarget;
 
         // 禁用状态的菜单不操作
-        if ($this.attr('disabled') !== null) {
+        if (_this.getAttribute('disabled') !== null) {
           return;
         }
 
         // 用 mouseover 模拟 mouseenter
         if (eventType === 'mouseover') {
-          if (!$this.is($relatedTarget) && $.contains($this[0], $relatedTarget[0])) {
+          if (_this !== relatedTarget && $.contains(_this, relatedTarget)) {
             return;
           }
         }
 
         // 用 mouseout 模拟 mouseleave
         else if (eventType === 'mouseout') {
-          if ($this.is($relatedTarget) || $.contains($this[0], $relatedTarget[0])) {
+          if (_this === relatedTarget || $.contains(_this, relatedTarget)) {
             return;
           }
         }
 
         // 当前菜单项下的子菜单，未必存在
-        var $submenu = $this.children('.mdui-menu');
+        var submenu = $.child(_this, '.' + CLASS.menu);
 
         // 鼠标移入菜单项时，显示菜单项下的子菜单
         if (eventType === 'mouseover') {
-          if ($submenu.length) {
+          if (submenu) {
 
             // 当前子菜单准备打开时，如果当前子菜单正准备着关闭，不用再关闭了
-            var tmpClose = $submenu.data('timeoutClose.mdui.menu');
+            var tmpClose = $.data(submenu, 'timeoutClose.mdui.menu');
             if (tmpClose) {
               clearTimeout(tmpClose);
             }
 
             // 如果当前子菜单已经打开，不操作
-            if ($submenu.hasClass('mdui-menu-open')) {
+            if (submenu.classList.contains(CLASS.open)) {
               return;
             }
 
@@ -443,29 +464,29 @@ mdui.Menu = (function () {
 
             // 准备打开当前子菜单
             timeout = timeoutOpen = setTimeout(function () {
-              openSubMenu($submenu);
-            }, inst.options.subMenuDelay);
+              openSubMenu(submenu);
+            }, delay);
 
-            $submenu.data('timeoutOpen.mdui.menu', timeout);
+            $.data(submenu, 'timeoutOpen.mdui.menu', timeout);
           }
         }
 
         // 鼠标移出菜单项时，关闭菜单项下的子菜单
         else if (eventType === 'mouseout') {
-          if ($submenu.length) {
+          if (submenu) {
 
             // 鼠标移出菜单项时，如果当前菜单项下的子菜单正准备打开，不用再打开了
-            var tmpOpen = $submenu.data('timeoutOpen.mdui.menu');
+            var tmpOpen = $.data(submenu, 'timeoutOpen.mdui.menu');
             if (tmpOpen) {
               clearTimeout(tmpOpen);
             }
 
             // 准备关闭当前子菜单
             timeout = timeoutClose = setTimeout(function () {
-              closeSubMenu($submenu);
-            }, inst.options.subMenuDelay);
+              closeSubMenu(submenu);
+            }, delay);
 
-            $submenu.data('timeoutClose.mdui.menu', timeout);
+            $.data(submenu, 'timeoutClose.mdui.menu', timeout);
           }
         }
       });
@@ -483,29 +504,29 @@ mdui.Menu = (function () {
     var _this = this;
 
     // 触发菜单的元素
-    _this.$anchor = $(anchorSelector).eq(0);
-    if (!_this.$anchor.length) {
+    _this.anchor = $.dom(anchorSelector)[0];
+    if (typeof _this.anchor === 'undefined') {
       return;
     }
 
     // 已通过自定义属性实例化过，不再重复实例化
-    var oldInst = _this.$anchor.data('mdui.menu');
+    var oldInst = $.data(_this.anchor, 'mdui.menu');
     if (oldInst) {
       return oldInst;
     }
 
-    _this.$menu = $(menuSelector).eq(0);
+    _this.menu = $.dom(menuSelector)[0];
 
-    // 触发菜单的元素 和 菜单必须是同级的元素，否则菜单可能不能定位
-    if (!_this.$anchor.siblings(_this.$menu).length) {
+    // 触发菜单的元素 和 菜单必须时同级的元素，否则菜单可能不能定位
+    if (!$.child(_this.anchor.parentNode, _this.menu)) {
       return;
     }
 
-    _this.options = $.extend({}, DEFAULT, (opts || {}));
+    _this.options = $.extend(DEFAULT, (opts || {}));
     _this.state = 'closed';
 
     // 是否是级联菜单
-    _this.isCascade = _this.$menu.hasClass('mdui-menu-cascade');
+    _this.isCascade = _this.menu.classList.contains(CLASS.cascade);
 
     // covered 参数处理
     if (_this.options.covered === 'auto') {
@@ -515,28 +536,26 @@ mdui.Menu = (function () {
     }
 
     // 点击触发菜单切换
-    _this.$anchor.on('click', function () {
+    $.on(_this.anchor, 'click', function () {
       _this.toggle();
     });
 
     // 点击菜单外面区域关闭菜单
-    $document.on('click touchstart', function (e) {
-      var $target = $(e.target);
+    $.on(document, 'click touchstart', function (e) {
       if (
         (_this.state === 'opening' || _this.state === 'opened') &&
-          !$target.is(_this.$menu) &&
-          !$.contains(_this.$menu[0], $target[0]) &&
-          !$target.is(_this.$anchor) &&
-          !$.contains(_this.$anchor[0], $target[0])
+        !$.is(e.target, _this.menu) &&
+        !$.contains(_this.menu, e.target) &&
+        !$.is(e.target, _this.anchor) &&
+        !$.contains(_this.anchor, e.target)
       ) {
         _this.close();
       }
     });
 
     // 点击不含子菜单的菜单条目关闭菜单
-    $document.on('click', '.mdui-menu-item', function (e) {
-      var $this = $(this);
-      if (!$this.find('.mdui-menu').length && $this.attr('disabled') === null) {
+    $.on(document, 'click', '.' + CLASS.item, function () {
+      if (!$.query('.' + CLASS.menu, this) && this.getAttribute('disabled') === null) {
         _this.close();
       }
     });
@@ -545,7 +564,7 @@ mdui.Menu = (function () {
     bindSubMenuEvent(_this);
 
     // 窗口大小变化时，重新调整菜单位置
-    $window.on('resize', $.throttle(function () {
+    $.on(window, 'resize', mdui.throttle(function () {
       readjust(_this);
     }, 100));
   }
@@ -564,32 +583,6 @@ mdui.Menu = (function () {
   };
 
   /**
-   * 动画结束回调
-   * @param inst
-   */
-  var transitionEnd = function (inst) {
-    inst.$menu.removeClass('mdui-menu-closing');
-
-    if (inst.state === 'opening') {
-      inst.state = 'opened';
-      componentEvent('opened', 'menu', inst, inst.$menu);
-    }
-
-    if (inst.state === 'closing') {
-      inst.state = 'closed';
-      componentEvent('closed', 'menu', inst, inst.$menu);
-
-      // 关闭后，恢复菜单样式到默认状态，并恢复 fixed 定位
-      inst.$menu.css({
-        top: '',
-        left: '',
-        width: '',
-        position: 'fixed',
-      });
-    }
-  };
-
-  /**
    * 打开菜单
    */
   Menu.prototype.open = function () {
@@ -600,23 +593,28 @@ mdui.Menu = (function () {
     }
 
     _this.state = 'opening';
-    componentEvent('open', 'menu', _this, _this.$menu);
 
     // 调整菜单位置
     readjust(_this);
 
-    _this.$menu
+    // 菜单隐藏状态使用使用 fixed 定位。
+    _this.menu.style.position = _this.options.fixed ? 'fixed' : 'absolute';
 
-      // 菜单隐藏状态使用使用 fixed 定位。
-      .css('position', _this.options.fixed ? 'fixed' : 'absolute')
+    // 打开菜单
+    _this.menu.classList.add(CLASS.open);
+    $.pluginEvent('open', 'menu', _this, _this.menu);
 
-      // 打开菜单
-      .addClass('mdui-menu-open')
+    // 打开动画完成后
+    $.transitionEnd(_this.menu, function () {
 
-      // 打开动画完成后
-      .transitionEnd(function () {
-        transitionEnd(_this);
-      });
+      // 如果打开动画结束前，菜单状态已经改变了，则不触发 opened 事件
+      if (_this.state !== 'opening') {
+        return;
+      }
+
+      _this.state = 'opened';
+      $.pluginEvent('opened', 'menu', _this, _this.menu);
+    });
   };
 
   /**
@@ -628,20 +626,34 @@ mdui.Menu = (function () {
       return;
     }
 
+    _this.menu.classList.remove(CLASS.open);
     _this.state = 'closing';
-    componentEvent('close', 'menu', _this, _this.$menu);
+    $.pluginEvent('close', 'menu', _this, _this.menu);
 
     // 菜单开始关闭时，关闭所有子菜单
-    _this.$menu.find('.mdui-menu').each(function () {
-      closeSubMenu($(this));
+    $.each($.queryAll('.mdui-menu', _this.menu), function (i, submenu) {
+      closeSubMenu(submenu);
     });
 
-    _this.$menu
-      .removeClass('mdui-menu-open')
-      .addClass('mdui-menu-closing')
-      .transitionEnd(function () {
-        transitionEnd(_this);
-      });
+    // 关闭动画完成后
+    $.transitionEnd(_this.menu, function () {
+
+      // 如果关闭动画完成前，菜单状态又改变了，则不触发 closed 事件
+      if (_this.state !== 'closing') {
+        return;
+      }
+
+      _this.state = 'closed';
+      $.pluginEvent('closed', 'menu', _this, _this.menu);
+
+      // 关闭后，恢复菜单样式到默认状态
+      _this.menu.style.top = '';
+      _this.menu.style.left = '';
+      _this.menu.style.width = '';
+
+      // 关闭后，恢复 fixed 定位
+      _this.menu.style.position = 'fixed';
+    });
   };
 
   return Menu;

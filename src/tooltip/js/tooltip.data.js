@@ -4,16 +4,20 @@
  * =============================================================================
  */
 
-$(function () {
+(function () {
   // mouseenter 不能冒泡，所以这里用 mouseover 代替
-  $document.on('touchstart mouseover', '[mdui-tooltip]', function () {
-    var $this = $(this);
+  var event = mdui.support.touch ? 'touchstart' : 'mouseover';
 
-    var inst = $this.data('mdui.tooltip');
+  $.on(document, event, '[mdui-tooltip]', function () {
+    var _this = this;
+
+    var inst = $.data(_this, 'mdui.tooltip');
     if (!inst) {
-      var options = parseOptions($this.attr('mdui-tooltip'));
-      inst = new mdui.Tooltip($this, options);
-      $this.data('mdui.tooltip', inst);
+      var options = $.parseOptions(_this.getAttribute('mdui-tooltip'));
+      inst = new mdui.Tooltip(_this, options);
+      $.data(_this, 'mdui.tooltip', inst);
+
+      inst.open();
     }
   });
-});
+})();

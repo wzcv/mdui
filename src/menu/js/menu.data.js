@@ -4,18 +4,19 @@
  * =============================================================================
  */
 
-$(function () {
-  $document.on('click', '[mdui-menu]', function () {
-    var $this = $(this);
+$.ready(function () {
 
-    var inst = $this.data('mdui.menu');
+  $.on(document, 'click', '[mdui-menu]', function () {
+    var _this = this;
+
+    var inst = $.data(_this, 'mdui.menu');
     if (!inst) {
-      var options = parseOptions($this.attr('mdui-menu'));
+      var options = $.parseOptions(_this.getAttribute('mdui-menu'));
       var menuSelector = options.target;
       delete options.target;
 
-      inst = new mdui.Menu($this, menuSelector, options);
-      $this.data('mdui.menu', inst);
+      inst = new mdui.Menu(_this, menuSelector, options);
+      $.data(_this, 'mdui.menu', inst);
 
       inst.toggle();
     }

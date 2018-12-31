@@ -20,7 +20,6 @@
   ],
   "homepage": "http://mdui.org",
   "ignore": [
-    ".github",
     "node_modules",
     "bower_components",
     "test",

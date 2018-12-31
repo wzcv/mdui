@@ -14,6 +14,7 @@ body.mdui-loaded .mdui-drawer {
 
 /* 抽屉栏外层，默认出现在左侧且隐藏 */
 .mdui-drawer {
+  width: @drawer-width;
   box-sizing: border-box;
   position: fixed;
   left: 0;
@@ -24,36 +25,17 @@ body.mdui-loaded .mdui-drawer {
   white-space: nowrap;
   overflow-x: hidden;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   top: 0;
 
-  // 手机端宽度为 100% - 56px，最大为 280px
-  width: calc(~"100% - 56px");
-  max-width: @drawer-width-xs;
-
-  // 隐藏时不显示阴影
-  @media (max-width: @screen-sm-max) {
-    &:not(.mdui-drawer-open) {
-      box-shadow: none !important;
-    }
+  &:hover {
+    overflow-y: auto!important;
   }
+}
 
-  // 平板端宽度为 100% - 64px，最大为 320px
-  @media (min-width: @screen-sm-min) {
-    width: calc(~"100% - 64px");
-    max-width: @drawer-width-sm;
-  }
 
-  // 桌面端宽度
-  @media (min-width: @screen-md-min) {
-    width: @drawer-width-md;
-    max-width: none;
-
-    // 隐藏时不显示阴影
-    &.mdui-drawer-close {
-      box-shadow: none !important;
-    }
-  }
+/* 美化滚动条 */
+.mdui-drawer-scrollbar {
+  .mdui-scrollbar-beautify();
 }
 
 /* 出现在右侧的抽屉栏 */
@@ -62,11 +44,11 @@ body.mdui-loaded .mdui-drawer {
   right: 0;
 }
 
-/* 平板上的样式 */
+/* 手机平板上的样式 */
 @media (max-width: @screen-sm-max) {
   .mdui-drawer {
     /* 默认隐藏 */
-    transform: translateX(-@drawer-width-sm - 10);
+    transform: translateX(-@drawer-width - 10);
 
     /* 始终有背景和阴影 */
     background-color: #fff;
@@ -75,39 +57,16 @@ body.mdui-loaded .mdui-drawer {
 
   .mdui-drawer-right {
     /* 右侧 drawer 也默认隐藏 */
-    transform: translateX(@drawer-width-sm + 10);
-  }
-}
-
-/* 手机上的样式 */
-@media (max-width: @screen-xs-max) {
-  .mdui-drawer {
-    transform: translateX(-@drawer-width-xs - 10);
-  }
-
-  .mdui-drawer-right {
-    transform: translateX(@drawer-width-xs + 10);
+    transform: translateX(@drawer-width + 10);
   }
 }
 
 /* 强制隐藏抽屉栏 */
-._drawer_close(@drawer-width) {
-  .mdui-drawer-close {
-    transform: translateX(-@drawer-width - 10);
-    &.mdui-drawer-right {
-      transform: translateX(@drawer-width + 10);
-    }
+.mdui-drawer-close {
+  transform: translateX(-@drawer-width - 10);
+  &.mdui-drawer-right {
+    transform: translateX(@drawer-width + 10);
   }
-}
-
-._drawer_close(@drawer-width-xs);
-
-@media (min-width: @screen-sm-min) {
-  ._drawer_close(@drawer-width-sm);
-}
-
-@media (min-width: @screen-md-min) {
-  ._drawer_close(@drawer-width-md);
 }
 
 /* 强制显示抽屉栏 */
@@ -117,18 +76,18 @@ body.mdui-loaded .mdui-drawer {
 
 /* PC 上的样式 */
 @media (min-width: @screen-md-min) {
-  /* 使该类所在元素获得 padding-left 或 padding-right，避免被抽屉栏覆盖住页面 */
-  .mdui-drawer-body-left {
-    padding-left: @drawer-width-md;
+  /* 使 body 获得 padding-left 或 padding-right，避免被抽屉栏覆盖住页面 */
+  body.mdui-drawer-body-left {
+    padding-left: @drawer-width;
   }
-  .mdui-drawer-body-right {
-    padding-right: @drawer-width-md;
+  body.mdui-drawer-body-right {
+    padding-right: @drawer-width;
   }
 
   /* PC 上默认有上边距 */
   .mdui-drawer {
     .mdui-appbar-with-toolbar & {
-      top: @appbar-height-sm;
+      top: @appbar-height-md;
     }
 
     .mdui-appbar-with-tab & {
@@ -140,11 +99,11 @@ body.mdui-loaded .mdui-drawer {
     }
 
     .mdui-appbar-with-toolbar.mdui-appbar-with-tab & {
-      top: @appbar-height-sm + 48px;
+      top: @appbar-height-md + 48px;
     }
 
     .mdui-appbar-with-toolbar.mdui-appbar-with-tab-larger & {
-      top: @appbar-height-sm + 72px;
+      top: @appbar-height-md + 72px;
     }
   }
 }
@@ -166,6 +125,11 @@ body.mdui-loaded .mdui-drawer {
  * =============================================================================
  */
 .mdui-theme-layout-dark when (@globalLayoutDark = true) {
+
+  // 美化滚动条
+  .mdui-drawer-scrollbar {
+    .mdui-scrollbar-beautify(dark);
+  }
 
   // 手机平板上的样式
   @media (max-width: @screen-sm-max) {

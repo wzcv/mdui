@@ -6,13 +6,16 @@
 
 (function () {
 
-  var getProp = function (obj, prop) {
-    return (
-      typeof obj === 'object' &&
-      obj !== null &&
-      obj[prop] !== undefined &&
-      obj[prop]
-    ) ? obj[prop] : false;
+  var notInputs = ['checkbox', 'button', 'submit', 'range', 'radio', 'image'];
+
+  var classNames = {
+    field: 'mdui-textfield',
+    input: 'mdui-textfield-input',
+    focus: 'mdui-textfield-focus',
+    notEmpty: 'mdui-textfield-not-empty',
+    disabled: 'mdui-textfield-disabled',
+    invalid: 'mdui-textfield-invalid',
+    expanded: 'mdui-textfield-expanded',
   };
 
   /**
@@ -21,156 +24,181 @@
    */
   var inputEvent = function (e) {
     var input = e.target;
-    var $input = $(input);
     var event = e.type;
-    var value = $input.val();
+    var value = input.value;
 
     // reInit 为 true 时，需要重新初始化文本框
-    var reInit = getProp(e.detail, 'reInit');
+    var reInit;
+    if (
+      typeof e.detail === 'object' &&
+      typeof e.detail.reInit !== 'undefined' &&
+      e.detail.reInit
+    ) {
+      reInit = e.detail.reInit;
+    } else {
+      reInit = false;
+    }
 
     // domLoadedEvent 为 true 时，为 DOM 加载完毕后自动触发的事件
-    var domLoadedEvent = getProp(e.detail, 'domLoadedEvent');
+    var domLoadedEvent;
+    if (
+      typeof e.detail === 'object' &&
+      typeof e.detail.domLoadedEvent !== 'undefined' &&
+      e.detail.domLoadedEvent
+    ) {
+      domLoadedEvent = e.detail.domLoadedEvent;
+    } else {
+      domLoadedEvent = false;
+    }
 
     // 文本框类型
-    var type = $input.attr('type') || '';
-    if (['checkbox', 'button', 'submit', 'range', 'radio', 'image'].indexOf(type) >= 0) {
+    var type = input.getAttribute('type') || '';
+    if (notInputs.indexOf(type) >= 0) {
       return;
     }
 
-    var $textField = $input.parent('.mdui-textfield');
+    var textField = $.parents(input, '.' + classNames.field)[0];
 
     // 输入框是否聚焦
     if (event === 'focus') {
-      $textField.addClass('mdui-textfield-focus');
+      textField.classList.add(classNames.focus);
     }
 
     if (event === 'blur') {
-      $textField.removeClass('mdui-textfield-focus');
+      textField.classList.remove(classNames.focus);
     }
 
     // 输入框是否为空
     if (event === 'blur' || event === 'input') {
-      $textField[(value && value !== '') ? 'addClass' : 'removeClass']('mdui-textfield-not-empty');
+      if (value && value !== '') {
+        textField.classList.add(classNames.notEmpty);
+      } else {
+        textField.classList.remove(classNames.notEmpty);
+      }
     }
 
     // 输入框是否禁用
-    $textField[input.disabled ? 'addClass' : 'removeClass']('mdui-textfield-disabled');
+    if (input.disabled) {
+      textField.classList.add(classNames.disabled);
+    } else {
+      textField.classList.remove(classNames.disabled);
+    }
 
     // 表单验证
     if ((event === 'input' || event === 'blur') && !domLoadedEvent) {
       if (input.validity) {
-        var method = input.validity.valid ? 'removeClass' : 'addClass';
-        $textField[method]('mdui-textfield-invalid-html5');
+        if (input.validity.valid) {
+          textField.classList.remove(classNames.invalid);
+        } else {
+          textField.classList.add(classNames.invalid);
+        }
       }
     }
 
     // textarea 高度自动调整
     if (e.target.nodeName.toLowerCase() === 'textarea') {
-
-      // IE bug：textarea 的值仅为多个换行，不含其他内容时，textarea 的高度不准确
-      //         此时，在计算高度前，在值的开头加入一个空格，计算完后，移除空格
-      var inputValue = $input.val();
-      var hasExtraSpace = false;
-      if (inputValue.replace(/[\r\n]/g, '') === '') {
-        $input.val(' ' + inputValue);
-        hasExtraSpace = true;
-      }
-
-      // 设置 textarea 高度
-      $input.height('');
-      var height = $input.height();
+      input.style.height = '';
+      var height = input.offsetHeight;
+      var diff = height - input.clientHeight;
       var scrollHeight = input.scrollHeight;
 
-      if (scrollHeight > height) {
-        $input.height(scrollHeight);
-      }
-
-      // 计算完，还原 textarea 的值
-      if (hasExtraSpace) {
-        $input.val(inputValue);
+      if (scrollHeight + diff > height) {
+        var newAreaHeight = scrollHeight + diff;
+        input.style.height = newAreaHeight + 'px';
       }
     }
 
     // 实时字数统计
+    var counter;
     if (reInit) {
-      $textField
-        .find('.mdui-textfield-counter')
-        .remove();
+      textField.classList.remove('mdui-textfield-has-counter');
+      counter = $.query('.mdui-textfield-counter', textField);
+      if (counter) {
+        $.remove(counter);
+      }
     }
 
-    var maxlength = $input.attr('maxlength');
+    var maxlength = input.getAttribute('maxlength');
     if (maxlength) {
       if (reInit || domLoadedEvent) {
-        $('<div class="mdui-textfield-counter">' +
+        counter = $.dom(
+          '<div class="mdui-textfield-counter">' +
             '<span class="mdui-textfield-counter-inputed"></span> / ' + maxlength +
-          '</div>').appendTo($textField);
+          '</div>'
+        )[0];
+        textField.appendChild(counter);
+
+        // 如果没有 .mdui-textfield-error 作为占位，需要增加 .mdui-textfield 的下边距，
+        // 使 .mdui-textfield-counter 不会覆盖在文本框上
+        if (!$.query('.mdui-textfield-error', textField)) {
+          textField.classList.add('mdui-textfield-has-counter');
+        }
       }
 
-      $textField.find('.mdui-textfield-counter-inputed').text(value.length.toString());
+      // 字符长度，确保统计方式和 maxlength 一致
+      var inputed = input.value.length + input.value.split('\n').length - 1;
+      $.query('.mdui-textfield-counter-inputed', textField).innerText = inputed.toString();
     }
 
-    // 含 帮助文本、错误提示、字数统计 时，增加文本框底部内边距
-    if (
-      $textField.find('.mdui-textfield-helper').length ||
-      $textField.find('.mdui-textfield-error').length ||
-      maxlength
-    ) {
-      $textField.addClass('mdui-textfield-has-bottom');
-    }
   };
 
   // 绑定事件
-  $document.on('input focus blur', '.mdui-textfield-input', { useCapture: true }, inputEvent);
+  var inputSelector = '.' + classNames.field + ' input, .' + classNames.field + ' textarea';
+  $.on(document, 'input focus blur', inputSelector, inputEvent, true);
 
   // 可展开文本框展开
-  $document.on('click', '.mdui-textfield-expandable .mdui-textfield-icon', function () {
-    $(this)
+  $.on(document, 'click', '.mdui-textfield-expandable .mdui-textfield-icon', function () {
+    var _this = this;
+    var textField = $.parents(_this, '.' + classNames.field)[0];
+    var input = $.query('.' + classNames.input, textField);
 
-      // 展开文本框
-      .parents('.mdui-textfield')
-      .addClass('mdui-textfield-expanded')
-
-      // 聚焦到输入框
-      .find('.mdui-textfield-input')[0].focus();
+    textField.classList.add(classNames.expanded);
+    input.focus();
   });
 
   // 可展开文本框关闭
-  $document.on('click', '.mdui-textfield-expanded .mdui-textfield-close', function () {
-    $(this)
+  $.on(document, 'click', '.mdui-textfield-expandable .mdui-textfield-close', function () {
+    var _this = this;
+    var textField = $.parents(_this, '.' + classNames.field)[0];
+    var input = $.query('.' + classNames.input, textField);
 
-      // 关闭文本框
-      .parents('.mdui-textfield')
-      .removeClass('mdui-textfield-expanded')
-
-      // 清空输入框
-      .find('.mdui-textfield-input')
-      .val('');
+    textField.classList.remove(classNames.expanded);
+    input.value = '';
   });
 
   /**
    * 通过 JS 更新了表单内容，需要重新进行表单处理
-   * @param- 如果传入了 .mdui-textfield 所在的 DOM 元素，则更新该文本框；否则，更新所有文本框
+   * @param dom 如果传入了 .mdui-textfield 所在的 DOM 元素，则更新该文本框；否则，更新所有文本框
    */
   mdui.updateTextFields = function () {
-    $(arguments.length ? arguments[0] : '.mdui-textfield').each(function () {
-      $(this)
-        .find('.mdui-textfield-input')
-        .trigger('input', {
+    var textfields;
+    var input;
+
+    if (arguments.length === 1) {
+      textfields = $.dom(arguments[0]);
+    } else {
+      textfields = $.queryAll('.mdui-textfield');
+    }
+
+    $.each(textfields, function (i, textfield) {
+      input = $.query('.mdui-textfield-input', textfield);
+      if (input) {
+        $.trigger(input, 'input', {
           reInit: true,
         });
+      }
     });
   };
-})();
 
-$(function () {
-  /**
-   * 初始化文本框
-   */
-  mdui.mutation('.mdui-textfield', function () {
-    $(this)
-      .find('.mdui-textfield-input')
-      .trigger('input', {
+  $.ready(function () {
+
+    // DOM 加载完后自动执行
+    $.each($.queryAll('.mdui-textfield-input'), function (i, input) {
+      $.trigger(input, 'input', {
         domLoadedEvent: true,
       });
+    });
+
   });
-});
+
+})();

@@ -16,14 +16,6 @@ mdui.Tooltip = (function () {
   };
 
   /**
-   * 是否是桌面设备
-   * @returns {boolean}
-   */
-  var isDesktop = function () {
-    return $window.width() > 1024;
-  };
-
-  /**
    * 设置 Tooltip 的位置
    * @param inst
    */
@@ -33,14 +25,14 @@ mdui.Tooltip = (function () {
     var position;
 
     // 触发的元素
-    var targetProps = inst.$target[0].getBoundingClientRect();
+    var targetProps = inst.target.getBoundingClientRect();
 
     // 触发的元素和 Tooltip 之间的距离
-    var targetMargin = (isDesktop() ? 14 : 24);
+    var targetMargin = (mdui.support.touch ? 24 : 14);
 
     // Tooltip 的宽度和高度
-    var tooltipWidth = inst.$tooltip[0].offsetWidth;
-    var tooltipHeight = inst.$tooltip[0].offsetHeight;
+    var tooltipWidth = inst.tooltip.offsetWidth;
+    var tooltipHeight = inst.tooltip.offsetHeight;
 
     // Tooltip 的方向
     position = inst.options.position;
@@ -49,7 +41,7 @@ mdui.Tooltip = (function () {
     if (['bottom', 'top', 'left', 'right'].indexOf(position) === -1) {
       if (
         targetProps.top + targetProps.height + targetMargin + tooltipHeight + 2 <
-        $window.height()
+        document.documentElement.clientHeight
       ) {
         position = 'bottom';
       } else if (targetMargin + tooltipHeight + 2 < targetProps.top) {
@@ -58,7 +50,7 @@ mdui.Tooltip = (function () {
         position = 'left';
       } else if (
         targetProps.width + targetMargin + tooltipWidth + 2 <
-        $window.width() - targetProps.left
+        document.documentElement.clientWidth - targetProps.left
       ) {
         position = 'right';
       } else {
@@ -71,32 +63,30 @@ mdui.Tooltip = (function () {
       case 'bottom':
         marginLeft = -1 * (tooltipWidth / 2);
         marginTop = (targetProps.height / 2) + targetMargin;
-        inst.$tooltip.transformOrigin('top center');
+        $.transformOrigin(inst.tooltip, 'top center');
         break;
       case 'top':
         marginLeft = -1 * (tooltipWidth / 2);
         marginTop = -1 * (tooltipHeight + (targetProps.height / 2) + targetMargin);
-        inst.$tooltip.transformOrigin('bottom center');
+        $.transformOrigin(inst.tooltip, 'bottom center');
         break;
       case 'left':
         marginLeft = -1 * (tooltipWidth + (targetProps.width / 2) + targetMargin);
         marginTop = -1 * (tooltipHeight / 2);
-        inst.$tooltip.transformOrigin('center right');
+        $.transformOrigin(inst.tooltip, 'center right');
         break;
       case 'right':
         marginLeft = (targetProps.width / 2) + targetMargin;
         marginTop = -1 * (tooltipHeight / 2);
-        inst.$tooltip.transformOrigin('center left');
+        $.transformOrigin(inst.tooltip, 'center left');
         break;
     }
 
-    var targetOffset = inst.$target.offset();
-    inst.$tooltip.css({
-      top: targetOffset.top + (targetProps.height / 2) + 'px',
-      left: targetOffset.left + (targetProps.width / 2) + 'px',
-      'margin-left': marginLeft + 'px',
-      'margin-top': marginTop + 'px',
-    });
+    var targetOffset = $.offset(inst.target);
+    inst.tooltip.style.top = targetOffset.top + (targetProps.height / 2) + 'px';
+    inst.tooltip.style.left = targetOffset.left + (targetProps.width / 2) + 'px';
+    inst.tooltip.style['margin-left'] = marginLeft + 'px';
+    inst.tooltip.style['margin-top'] = marginTop + 'px';
   }
 
   /**
@@ -108,92 +98,41 @@ mdui.Tooltip = (function () {
   function Tooltip(selector, opts) {
     var _this = this;
 
-    _this.$target = $(selector).eq(0);
-    if (!_this.$target.length) {
+    _this.target = $.dom(selector)[0];
+    if (typeof _this.target === 'undefined') {
       return;
     }
 
     // 已通过 data 属性实例化过，不再重复实例化
-    var oldInst = _this.$target.data('mdui.tooltip');
+    var oldInst = $.data(_this.target, 'mdui.tooltip');
     if (oldInst) {
       return oldInst;
     }
 
-    _this.options = $.extend({}, DEFAULT, (opts || {}));
+    _this.options = $.extend(DEFAULT, (opts || {}));
     _this.state = 'closed';
 
     // 创建 Tooltip HTML
-    _this.$tooltip = $(
-      '<div class="mdui-tooltip" id="' + $.guid() + '">' +
-        _this.options.content +
-      '</div>'
-    ).appendTo(document.body);
+    var guid = mdui.guid();
+    _this.tooltip = $.dom(
+      '<div class="mdui-tooltip ' +
+        (mdui.support.touch ? 'mdui-tooltip-mobile' : 'mdui-tooltip-desktop') +
+        '" id="mdui-tooltip-' + guid + '">' +
+        _this.options.content + '</div>'
+    )[0];
+    document.body.appendChild(_this.tooltip);
 
-    // 绑定事件。元素处于 disabled 状态时无法触发鼠标事件，为了统一，把 touch 事件也禁用
-    _this.$target
-      .on('touchstart mouseenter', function (e) {
-        if (this.disabled) {
-          return;
-        }
+    // 绑定事件
+    var openEvent = mdui.support.touch ? 'touchstart' : 'mouseenter';
+    var closeEvent = mdui.support.touch ? 'touchend' : 'mouseleave';
+    $.on(_this.target, openEvent, function () {
+      _this.open();
+    });
 
-        if (!TouchHandler.isAllow(e)) {
-          return;
-        }
-
-        TouchHandler.register(e);
-
-        _this.open();
-      })
-      .on('touchend mouseleave', function (e) {
-        if (this.disabled) {
-          return;
-        }
-
-        if (!TouchHandler.isAllow(e)) {
-          return;
-        }
-
-        _this.close();
-      })
-      .on(TouchHandler.unlock, function (e) {
-        if (this.disabled) {
-          return;
-        }
-
-        TouchHandler.register(e);
-      });
+    $.on(_this.target, closeEvent, function () {
+      _this.close();
+    });
   }
-
-  /**
-   * 动画结束回调
-   * @private
-   */
-  var transitionEnd = function (inst) {
-    if (inst.$tooltip.hasClass('mdui-tooltip-open')) {
-      inst.state = 'opened';
-      componentEvent('opened', 'tooltip', inst, inst.$target);
-    } else {
-      inst.state = 'closed';
-      componentEvent('closed', 'tooltip', inst, inst.$target);
-    }
-  };
-
-  /**
-   * 执行打开 Tooltip
-   * @private
-   */
-  Tooltip.prototype._doOpen = function () {
-    var _this = this;
-
-    _this.state = 'opening';
-    componentEvent('open', 'tooltip', _this, _this.$target);
-
-    _this.$tooltip
-      .addClass('mdui-tooltip-open')
-      .transitionEnd(function () {
-        transitionEnd(_this);
-      });
-  };
 
   /**
    * 打开 Tooltip
@@ -206,29 +145,34 @@ mdui.Tooltip = (function () {
       return;
     }
 
-    var oldOpts = $.extend({}, _this.options);
+    var oldOpts = _this.options;
 
     // 合并 data 属性参数
-    $.extend(_this.options, parseOptions(_this.$target.attr('mdui-tooltip')));
+    var dataOpts = $.parseOptions(_this.target.getAttribute('mdui-tooltip'));
+    _this.options = $.extend(_this.options, dataOpts);
+
     if (opts) {
-      $.extend(_this.options, opts);
+      _this.options = $.extend(_this.options, opts);
     }
 
-    // tooltip 的内容有更新
     if (oldOpts.content !== _this.options.content) {
-      _this.$tooltip.html(_this.options.content);
+      _this.tooltip.innerHTML = _this.options.content;
     }
 
     setPosition(_this);
 
-    if (_this.options.delay) {
-      _this.timeoutId = setTimeout(function () {
-        _this._doOpen();
-      }, _this.options.delay);
-    } else {
-      _this.timeoutId = false;
-      _this._doOpen();
-    }
+    _this.timeoutId = setTimeout(function () {
+      _this.tooltip.classList.add('mdui-tooltip-open');
+      _this.state = 'opening';
+      $.pluginEvent('open', 'tooltip', _this, _this.target);
+
+      $.transitionEnd(_this.tooltip, function () {
+        if (_this.tooltip.classList.contains('mdui-tooltip-open')) {
+          _this.state = 'opened';
+          $.pluginEvent('opened', 'tooltip', _this, _this.target);
+        }
+      });
+    }, _this.options.delay);
   };
 
   /**
@@ -237,23 +181,21 @@ mdui.Tooltip = (function () {
   Tooltip.prototype.close = function () {
     var _this = this;
 
-    if (_this.timeoutId) {
-      clearTimeout(_this.timeoutId);
-      _this.timeoutId = false;
-    }
-
     if (_this.state === 'closing' || _this.state === 'closed') {
       return;
     }
 
+    clearTimeout(_this.timeoutId);
+    _this.tooltip.classList.remove('mdui-tooltip-open');
     _this.state = 'closing';
-    componentEvent('close', 'tooltip', _this, _this.$target);
+    $.pluginEvent('close', 'tooltip', _this, _this.target);
 
-    _this.$tooltip
-      .removeClass('mdui-tooltip-open')
-      .transitionEnd(function () {
-        transitionEnd(_this);
-      });
+    $.transitionEnd(_this.tooltip, function () {
+      if (!_this.tooltip.classList.contains('mdui-tooltip-open')) {
+        _this.state = 'closed';
+        $.pluginEvent('closed', 'tooltip', _this, _this.target);
+      }
+    });
   };
 
   /**

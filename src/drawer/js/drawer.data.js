@@ -4,24 +4,25 @@
  * =============================================================================
  */
 
-$(function () {
-  mdui.mutation('[mdui-drawer]', function () {
-    var $this = $(this);
-    var options = parseOptions($this.attr('mdui-drawer'));
+$.ready(function () {
+
+  // 实例化插件
+  $.each($.queryAll('[mdui-drawer]'), function (i, target) {
+    var options = $.parseOptions(target.getAttribute('mdui-drawer'));
     var selector = options.target;
     delete options.target;
 
-    var $drawer = $(selector).eq(0);
+    var drawer = $.dom(selector)[0];
 
-    var inst = $drawer.data('mdui.drawer');
+    var inst = $.data(drawer, 'mdui.drawer');
     if (!inst) {
-      inst = new mdui.Drawer($drawer, options);
-      $drawer.data('mdui.drawer', inst);
+      inst = new mdui.Drawer(drawer, options);
+      $.data(drawer, 'mdui.drawer', inst);
     }
 
-    $this.on('click', function () {
+    $.on(target, 'click', function () {
       inst.toggle();
     });
-
   });
+
 });

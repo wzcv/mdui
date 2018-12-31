@@ -36,7 +36,6 @@
 
   // 简单菜单高度超出窗口高度时，使菜单边框和窗口保持一定距离，菜单内出现滚动条
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 
   // 菜单中的分隔线，默认上下有 8px 的外边距
   .mdui-divider {
@@ -45,18 +44,17 @@
   }
 }
 
+body:not(.mdui-support-touch) {
+  .mdui-menu {
+    .mdui-scrollbar-beautify();
+  }
+}
+
 /* 打开状态的菜单 */
 .mdui-menu-open {
   visibility: visible;
   transform: scale(1);
   opacity: 1;
-}
-
-/* 关闭中的菜单 */
-.mdui-menu-closing {
-  visibility: visible;
-  transform: scale(1);
-  opacity: 0;
 }
 
 /* 菜单项 */
@@ -110,9 +108,7 @@
 /* 菜单中的图标 */
 .mdui-menu-item-icon {
   color: @color-black-icon;
-  width: 40px;
-  padding-right: 16px;
-  box-sizing: border-box;
+  width: 42px;
   display: inline-block;
 }
 
@@ -124,10 +120,11 @@
 /* 有子菜单的条目的图标 */
 .mdui-menu-item-more {
   float: right;
-  width: 24px;
-  height: 24px;
-  margin: 4px 0;
-  background-image: data-uri('image/svg+xml', './menu/svg/arrow_right_dark.svg');
+  &:before {
+    content: '►';
+    font-size: 70%;
+    color: @color-black-icon;
+  }
 }
 
 
@@ -146,6 +143,82 @@
       line-height: 32px;
       padding: 0 24px;
     }
+
+    .mdui-menu-item-icon {
+      width: 40px;
+    }
+  }
+}
+
+/* 菜单宽度 */
+.mdui-menu-1x {
+  width: @menu-simple-x * 1;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 1;
+  }
+}
+.mdui-menu-2x {
+  width: @menu-simple-x * 2;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 2;
+  }
+}
+.mdui-menu-3x {
+  width: @menu-simple-x * 3;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 3;
+  }
+}
+.mdui-menu-4x {
+  width: @menu-simple-x * 4;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 4;
+  }
+}
+.mdui-menu-5x {
+  width: @menu-simple-x * 5;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 5;
+  }
+}
+.mdui-menu-6x {
+  width: @menu-simple-x * 6;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 6;
+  }
+}
+.mdui-menu-7x {
+  width: @menu-simple-x * 7;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 7;
+  }
+}
+.mdui-menu-8x {
+  width: @menu-simple-x * 8;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 8;
+  }
+}
+.mdui-menu-9x {
+  width: @menu-simple-x * 9;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 9;
+  }
+}
+.mdui-menu-10x {
+  width: @menu-simple-x * 10;
+
+  .mdui-menu-cascade & {
+    width: @menu-cascade-x * 10;
   }
 }
 
@@ -159,6 +232,12 @@
   .mdui-menu {
     background-color: @layout-dark-color-4;
     color: #fff;
+  }
+
+  &:not(.mdui-support-touch) {
+    .mdui-menu {
+      .mdui-scrollbar-beautify(dark);
+    }
   }
 
   .mdui-menu-item {
@@ -188,6 +267,8 @@
   }
 
   .mdui-menu-item-more {
-    background-image: data-uri('image/svg+xml', './menu/svg/arrow_right_light.svg');
+    &:before {
+      color: @color-white-icon;
+    }
   }
 }

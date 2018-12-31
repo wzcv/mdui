@@ -12,12 +12,15 @@
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
   min-height: 48px;
   max-height: 72px;
   padding: 0;
   margin: 0 auto;
   white-space: nowrap;
+
+  body:not(.mdui-support-touch) & {
+    .mdui-scrollbar-beautify();
+  }
 
   a {
     display: flex;
@@ -184,12 +187,26 @@
   .mdui-tab-active {
     color: inherit;
   }
+
   .mdui-tab-indicator {
     background-color: @color-white-500;
   }
 
   // 带背景色的选项卡中使用浅色滚动条
-  & {
+  body:not(.mdui-support-touch) & {
+    .mdui-scrollbar-beautify(dark);
+  }
+}
+
+/**
+ * =============================================================================
+ * ************   Tab dark   ************
+ * =============================================================================
+ */
+
+// 深色背景下用浅色滚动条
+body:not(.mdui-support-touch).mdui-theme-layout-dark when (@globalLayoutDark = true) {
+  .mdui-tab {
     .mdui-scrollbar-beautify(dark);
   }
 }

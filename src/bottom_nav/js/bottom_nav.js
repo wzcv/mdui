@@ -7,30 +7,31 @@
 (function () {
 
   // 切换导航项
-  $document.on('click', '.mdui-bottom-nav>a', function () {
-    var $this = $(this);
-    var $bottomNav = $this.parent();
-    var isThis;
-    $bottomNav.children('a').each(function (i, item) {
-      isThis = $this.is(item);
-      if (isThis) {
-        componentEvent('change', 'bottomNav', null, $bottomNav, {
+  $.on(document, 'click', '.mdui-bottom-nav>a', function () {
+    var _this = this;
+    var bottomNav = $.parent(_this, '.mdui-bottom-nav');
+    var items = $.children(bottomNav, 'a');
+
+    $.each(items, function (i, curItem) {
+      if (_this === curItem) {
+        $.pluginEvent('change', 'bottomNav', null, bottomNav, {
           index: i,
         });
-      }
 
-      $(item)[isThis ? 'addClass' : 'removeClass']('mdui-bottom-nav-active');
+        curItem.classList.add('mdui-bottom-nav-active');
+      } else {
+        curItem.classList.remove('mdui-bottom-nav-active');
+      }
     });
   });
 
   // 滚动时隐藏 mdui-bottom-nav-scroll-hide
-  mdui.mutation('.mdui-bottom-nav-scroll-hide', function () {
-    var $this = $(this);
-    var inst = new mdui.Headroom($this, {
+  $.each($.queryAll('.mdui-bottom-nav-scroll-hide'), function (i, bottomNav) {
+    var inst = new mdui.Headroom(bottomNav, {
       pinnedClass: 'mdui-headroom-pinned-down',
       unpinnedClass: 'mdui-headroom-unpinned-down',
     });
-    $this.data('mdui.headroom', inst);
+    $.data(bottomNav, 'mdui.headroom', inst);
   });
 
 })();

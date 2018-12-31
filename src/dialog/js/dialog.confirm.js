@@ -15,15 +15,15 @@ mdui.confirm = function (text, title, onConfirm, onCancel, options) {
     options = arguments[3];
   }
 
-  if (onConfirm === undefined) {
+  if (typeof onConfirm === 'undefined') {
     onConfirm = function () {};
   }
 
-  if (onCancel === undefined) {
+  if (typeof onCancel === 'undefined') {
     onCancel = function () {};
   }
 
-  if (options === undefined) {
+  if (typeof options === 'undefined') {
     options = {};
   }
 
@@ -38,7 +38,7 @@ mdui.confirm = function (text, title, onConfirm, onCancel, options) {
     closeOnEsc: true,             // 按下 esc 关闭对话框
   };
 
-  options = $.extend({}, DEFAULT, options);
+  options = $.extend(DEFAULT, options);
 
   return mdui.dialog({
     title: title,

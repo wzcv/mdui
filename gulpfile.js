@@ -8,8 +8,6 @@
  * gulp build             打包所有文件
  * gulp test-js-gulpfile  检查 gulpfile.js 文件的代码规范
  * gulp custom            定制打包
- * gulp build-jq          仅打包 jq 库
- * gulp test              测试
  */
 
 ;(function () {
@@ -26,7 +24,7 @@
   var jscs = require('gulp-jscs');
   var jshint = require('gulp-jshint');
   var less = require('gulp-less');
-  var cleanCSS = require('gulp-clean-css');
+  var minifyCSS = require('gulp-minify-css');
   var uglify = require('gulp-uglify');
   var del = require('del');
   var tap = require('gulp-tap');
@@ -34,10 +32,18 @@
   var path = require('path');
   var copy = require('gulp-copy');
   var zip = require('gulp-zip');
-  var sourcemaps = require('gulp-sourcemaps');
 
   // 定义一些常用函数
   var $ = {
+
+    /**
+     * 是否是数组
+     * @param arr
+     * @returns {boolean}
+     */
+    isArray: function (arr) {
+      return Object.prototype.toString.apply(arr) === '[object Array]';
+    },
 
     /**
      * 循环数组或对象
@@ -51,7 +57,7 @@
         return;
       }
 
-      if (Array.isArray(obj)) {
+      if ($.isArray(obj)) {
         // Array
         for (i = 0; i < obj.length; i++) {
           callback(i, obj[i]);
@@ -233,13 +239,10 @@
   mdui.moduleNames = [];      // 模块名列表
   mdui.jsFiles = [];          // 所有 JavaScript 文件列表
 
-  // 必须的模块名
-  mdui.moduleNamesRequire = ['core_intro', 'core_outro', 'jq', 'global', 'mutation'];
-
   $.each(mdui.modules, function (prop, module) {
 
-    // 模块名列表
-    if (!$.contains(mdui.moduleNamesRequire, prop)) {
+    // 模块名列表，modules.json 文件中除了 core_intro 和 core_outro 之外，其他都是模块名
+    if (prop !== 'core_intro' && prop !== 'core_outro') {
       mdui.moduleNames.push(prop);
     }
 
@@ -261,8 +264,9 @@
         'Safari >= 8',
       ],
     },
-    cleanCSS: {
-      compatibility: 'ie10'
+    minifyCSS: {
+      advanced: false,
+      aggressiveMerging: false,
     },
     header: {
       pkg: mdui.pkg,
@@ -273,10 +277,10 @@
   // JavaScript 文件添加缩进
   function addJSIndent(file, t) {
     var addIndent = '  ';
-    var filepath = file.path.replace(/\\/g, '/');
+    var filename = file.path.replace(file.base, '');
     if (
-      filepath.endsWith('/global/js/wrap_start.js') ||
-      filepath.endsWith('/global/js/wrap_end.js')
+      filename === 'wrap_start.js' ||
+      filename === 'wrap_end.js'
     ) {
       addIndent = '';
     }
@@ -329,9 +333,8 @@
   gulp.task('build-css', ['clean-css'], function (cb) {
 
     gulp.src(paths.src.root + mdui.filename + '.less')
-      .pipe(sourcemaps.init())
       .pipe(less({
-        modifyVars: {
+        globalVars: {
           globalPrimaryColors: mdui.primaryColors,
           globalPrimaryColorDegrees: mdui.primaryColorDegrees,
           globalAccentColors: mdui.accentColors,
@@ -345,11 +348,11 @@
       .pipe(csslint())
       .pipe(csslint.formatter())
       .pipe(gulp.dest(paths.dist.css))
-      .pipe(cleanCSS(configs.cleanCSS))
+
+      .pipe(minifyCSS(configs.minifyCSS))
       .pipe(rename(function (path) {
         path.basename = mdui.filename + '.min';
       }))
-      .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest(paths.dist.css))
       .on('end', function () {
         cb();
@@ -361,23 +364,22 @@
    */
   gulp.task('build-js', ['clean-js'], function (cb) {
     gulp.src(mdui.jsFiles)
-      .pipe(sourcemaps.init())
-      // .pipe(jscs())
-      // .pipe(jscs.reporter())
+      .pipe(jscs())
+      .pipe(jscs.reporter())
       .pipe(tap(function (file, t) {
         addJSIndent(file, t);
       }))
       .pipe(concat(mdui.filename + '.js'))
       .pipe(header(mdui.distBanner, configs.header))
-      // .pipe(jshint())
-      // .pipe(jshint.reporter('default'))
+      .pipe(jshint())
+      .pipe(jshint.reporter('default'))
       .pipe(gulp.dest(paths.dist.js))
+
       .pipe(uglify())
       .pipe(header(mdui.distBanner, configs.header))
       .pipe(rename(function (path) {
         path.basename = mdui.filename + '.min';
       }))
-      .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest(paths.dist.js))
       .on('end', function () {
         cb();
@@ -405,9 +407,6 @@
         cb();
       });
   });
-
-  // 测试
-  gulp.task('test', ['build']);
 
   // 监视文件
   gulp.task('watch', function () {
@@ -564,7 +563,7 @@
 
     $.each(mdui.modules, function (prop, module) {
 
-      if ($.contains(customModules, prop) || mdui.moduleNamesRequire.indexOf(prop) > -1) {
+      if ($.contains(customModules, prop) || prop === 'core_intro' || prop === 'core_outro') {
         if (typeof module.js !== 'undefined') {
           moduleJs = moduleJs.concat(module.js);
         }
@@ -590,32 +589,30 @@
 
     // 构建 JavaScript 文件
     gulp.src(moduleJs)
-      .pipe(sourcemaps.init())
-      // .pipe(jscs())
-      // .pipe(jscs.reporter())
+      .pipe(jscs())
+      .pipe(jscs.reporter())
       .pipe(tap(function (file, t) {
         addJSIndent(file, t);
       }))
       .pipe(concat(mdui.filename + '.custom.js'))
       .pipe(header(mdui.customBanner, customBannerOptions()))
-      // .pipe(jshint())
-      // .pipe(jshint.reporter('default'))
+      .pipe(jshint())
+      .pipe(jshint.reporter('default'))
       .pipe(gulp.dest(paths.custom.js))
+
       .pipe(uglify())
       .pipe(header(mdui.customBanner, customBannerOptions()))
       .pipe(rename(function (path) {
         path.basename = mdui.filename + '.custom.min';
       }))
-      .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest(paths.custom.js));
 
     // 构建 CSS 文件
     gulp.src(moduleLess)
       .pipe(concat(mdui.filename + '.custom.less'))
-      .pipe(sourcemaps.init())
       .pipe(less({
         paths: [path.join(__dirname, 'less', 'includes')],
-        modifyVars: {
+        globalVars: {
           globalPrimaryColors: customPrimaryColors,
           globalPrimaryColorDegrees: customPrimaryColorDegrees,
           globalAccentColors: customAccentColors,
@@ -630,11 +627,10 @@
       .pipe(csslint.formatter())
       .pipe(gulp.dest(paths.custom.css))
 
-      .pipe(cleanCSS(configs.cleanCSS))
+      .pipe(minifyCSS(configs.minifyCSS))
       .pipe(rename(function (path) {
         path.basename = mdui.filename + '.custom.min';
       }))
-      .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest(paths.custom.css));
 
     // 复制 fonts、icons 目录
@@ -651,6 +647,7 @@
           prefix: 1,
         }));
     }
+
   });
 
 })();

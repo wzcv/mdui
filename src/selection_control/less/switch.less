@@ -17,7 +17,7 @@
     width: 0;
     overflow: hidden;
     position: absolute;
-    opacity: 0;
+    visibility: hidden;
   }
 }
 
@@ -61,9 +61,8 @@
 }
 
 /* 未选中时或禁用时 按下的阴影 */
-.mdui-switch:active input[type="checkbox"],
-.mdui-switch input[type="checkbox"]:focus {
-  & + .mdui-switch-icon:before {
+.mdui-switch:active input[type="checkbox"] + .mdui-switch-icon {
+  &:before {
     box-shadow:
       // box-shadow(1)
       0 2px 1px -1px rgba(0, 0, 0, .2),
@@ -76,9 +75,8 @@
 }
 
 /* 已选中时按下的阴影 */
-.mdui-switch:active input[type="checkbox"],
-.mdui-switch input[type="checkbox"]:focus {
-  &:checked:not(:disabled) + .mdui-switch-icon:before {
+.mdui-switch:active input[type="checkbox"]:checked:not(:disabled) + .mdui-switch-icon {
+  &:before {
     box-shadow:
       // box-shadow(1)
       0 2px 1px -1px rgba(0, 0, 0, .2),
@@ -125,18 +123,15 @@
       }
 
       // 已选中时按下的阴影
-      .mdui-switch:active input[type="checkbox"],
-      .mdui-switch input[type="checkbox"]:focus {
-        &:checked:not(:disabled) + .mdui-switch-icon:before {
-          box-shadow:
-            // box-shadow(1)
-            0 2px 1px -1px rgba(0, 0, 0, .2),
-            0 1px 1px 0 rgba(0, 0, 0, .14),
-            0 1px 3px 0 rgba(0, 0, 0, .12),
+      .mdui-switch:active input[type="checkbox"]:checked:not(:disabled) + .mdui-switch-icon:before {
+        box-shadow:
+          // box-shadow(1)
+          0 2px 1px -1px rgba(0, 0, 0, .2),
+          0 1px 1px 0 rgba(0, 0, 0, .14),
+          0 1px 3px 0 rgba(0, 0, 0, .12),
 
-              // 颜色阴影
-            0 0 0 15px rgba(red(@@color), green(@@color), blue(@@color), 0.16);
-        }
+          // 颜色阴影
+          0 0 0 15px rgba(red(@@color), green(@@color), blue(@@color), 0.16);
       }
 
     }
@@ -187,18 +182,15 @@
   }
 
   // 未选中或禁用时 按下的阴影
-  .mdui-switch:active input[type="checkbox"],
-  .mdui-switch input[type="checkbox"]:focus {
-    & + .mdui-switch-icon:before {
-      box-shadow:
-        // box-shadow(1)
-        0 2px 1px -1px rgba(0, 0, 0, .2),
-        0 1px 1px 0 rgba(0, 0, 0, .14),
-        0 1px 3px 0 rgba(0, 0, 0, .12),
+  .mdui-switch:active input[type="checkbox"] + .mdui-switch-icon:before {
+    box-shadow:
+      // box-shadow(1)
+      0 2px 1px -1px rgba(0, 0, 0, .2),
+      0 1px 1px 0 rgba(0, 0, 0, .14),
+      0 1px 3px 0 rgba(0, 0, 0, .12),
 
-          // 颜色阴影
-        0 0 0 15px rgba(255, 255, 255, 0.1);
-    }
+        // 颜色阴影
+      0 0 0 15px rgba(255, 255, 255, 0.1);
   }
 
   // 禁用状态
